@@ -86,6 +86,8 @@ function recompute(state: AppState): AppState {
     ? percentuaisMensais.reduce((s, v) => s + v, 0) / percentuaisMensais.length
     : 0;
 
+  const composicaoMargem = custoFixoPercent > 33 ? custoFixoPercent - 33 : 0;
+
   const mediaCartao = (state.dnaEmpresa.taxaDebito + state.dnaEmpresa.taxaCredito) / 2;
 
   return {
@@ -94,7 +96,7 @@ function recompute(state: AppState): AppState {
     receitas,
     produtos,
     combos,
-    dnaEmpresa: { ...state.dnaEmpresa, custoFixoPercent, mediaCartao },
+    dnaEmpresa: { ...state.dnaEmpresa, custoFixoPercent, composicaoMargem, mediaCartao },
   };
 }
 
