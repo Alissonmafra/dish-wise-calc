@@ -197,7 +197,7 @@ export default function Diagnostico() {
         </Card>
         <Card>
           <CardContent className="pt-6 text-center">
-            <div className="text-3xl font-bold text-yellow-500">{pontuacao.atencoes}</div>
+            <div className="text-3xl font-bold text-amber-500">{pontuacao.atencoes}</div>
             <p className="text-sm text-muted-foreground">⚠️ Atenções</p>
           </CardContent>
         </Card>
