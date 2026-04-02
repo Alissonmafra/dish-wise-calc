@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, DollarSign, Package, BookOpen, Calculator, Layers, Receipt, ClipboardList, ChefHat,
+  LayoutDashboard, DollarSign, Package, BookOpen, Calculator, Layers, Receipt, ClipboardList, ChefHat, TrendingUp,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
