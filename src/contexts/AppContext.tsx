@@ -1,7 +1,18 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
-import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta } from '@/types';
+import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis } from '@/types';
+import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
 
 const STORAGE_KEY = 'precificacao-saas';
+
+const initialCustosInvisiveis: CustosInvisiveis = {
+  iptuAnual: 0,
+  funcionarios: [],
+  valeTransporte: { valorPassagem: 0, passagensPorDia: 2, diasTrabalhados: 22, qtdFuncionarios: 0 },
+  depreciacaoInventario: 0,
+  brindes: { qtdPorSemana: 0, cmvUnitario: 0, entregaUnitaria: 0, fatorMensal: 4 },
+  veiculos: [],
+  alimentacao: { qtdFuncionarios: 0, custoDiario: 8, diasTrabalhados: 22 },
+};
 
 function computeInsumo(i: Omit<Insumo, 'quantidadeReal' | 'precoReal' | 'custoPorUnidade'>): Insumo {
   const quantidadeReal = i.quantidadeComprada * (1 - i.percentualPerda / 100);
@@ -49,7 +60,11 @@ function recompute(state: AppState): AppState {
   const produtos = state.produtos.map(p => computeProdutoCMV(p, insumos, receitas));
   const combos = state.combos.map(c => computeComboCMV(c, produtos));
 
-  // Calculate custoFixoPercent per month, then average
+  // Calculate custos invisíveis
+  const custosInvCalc = calcularCustosInvisiveis(state.custosInvisiveis);
+  const totalInvisiveis = custosInvCalc.total;
+
+  // Calculate custoFixoPercent per month (visíveis + invisíveis), then average
   const despesasPorMes: Record<string, number> = {};
   for (const d of state.despesasFixas) {
     despesasPorMes[d.mes] = (despesasPorMes[d.mes] || 0) + d.valor;
@@ -58,7 +73,13 @@ function recompute(state: AppState): AppState {
   for (const [mes, totalDesp] of Object.entries(despesasPorMes)) {
     const fat = state.faturamento.find(f => f.mes === mes);
     if (fat && fat.valor > 0) {
-      percentuaisMensais.push((totalDesp / fat.valor) * 100);
+      percentuaisMensais.push(((totalDesp + totalInvisiveis) / fat.valor) * 100);
+    }
+  }
+  // Also include months with faturamento but no despesas visíveis (invisíveis still apply)
+  for (const f of state.faturamento) {
+    if (f.valor > 0 && !despesasPorMes[f.mes]) {
+      percentuaisMensais.push((totalInvisiveis / f.valor) * 100);
     }
   }
   const custoFixoPercent = percentuaisMensais.length > 0
@@ -182,6 +203,7 @@ const initialState: AppState = recompute({
   fechamentos: [],
   itensCardapio: [],
   itensManipulados: [],
+  custosInvisiveis: initialCustosInvisiveis,
   dre: {
     percentuais: {
       impostos: 8, ingredientes: 35, salariosProd: 10, proLabore: 7, bebidasRevenda: 5,
@@ -205,6 +227,7 @@ type Action =
   | { type: 'SET_FECHAMENTOS'; payload: FechamentoDia[] }
   | { type: 'SET_ITENS_CARDAPIO'; payload: ItemCardapio[] }
   | { type: 'SET_ITENS_MANIPULADOS'; payload: ItemManipulado[] }
+  | { type: 'SET_CUSTOS_INVISIVEIS'; payload: CustosInvisiveis }
   | { type: 'SET_DRE'; payload: DREState }
   | { type: 'SET_DIAGNOSTICO'; payload: DiagnosticoResposta[] }
   | { type: 'LOAD_STATE'; payload: AppState };
@@ -221,6 +244,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_FECHAMENTOS': return { ...state, fechamentos: action.payload };
     case 'SET_ITENS_CARDAPIO': return { ...state, itensCardapio: action.payload };
     case 'SET_ITENS_MANIPULADOS': return { ...state, itensManipulados: action.payload };
+    case 'SET_CUSTOS_INVISIVEIS': return recompute({ ...state, custosInvisiveis: action.payload });
     case 'SET_DRE': return { ...state, dre: action.payload };
     case 'SET_DIAGNOSTICO': return { ...state, diagnosticoRespostas: action.payload };
     case 'LOAD_STATE': return recompute(action.payload);
@@ -236,6 +260,9 @@ function loadState(): AppState {
       return recompute({
         ...initialState,
         ...parsed,
+        custosInvisiveis: parsed.custosInvisiveis
+          ? { ...initialCustosInvisiveis, ...parsed.custosInvisiveis, valeTransporte: { ...initialCustosInvisiveis.valeTransporte, ...(parsed.custosInvisiveis?.valeTransporte || {}) }, brindes: { ...initialCustosInvisiveis.brindes, ...(parsed.custosInvisiveis?.brindes || {}) }, alimentacao: { ...initialCustosInvisiveis.alimentacao, ...(parsed.custosInvisiveis?.alimentacao || {}) } }
+          : initialCustosInvisiveis,
         dre: parsed.dre ? { ...initialState.dre, ...parsed.dre, percentuais: { ...initialState.dre.percentuais, ...(parsed.dre?.percentuais || {}) } } : initialState.dre,
         diagnosticoRespostas: parsed.diagnosticoRespostas || [],
       });
