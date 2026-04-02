@@ -275,9 +275,14 @@ function loadState(): AppState {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
+      const mergedDna = { ...initialState.dnaEmpresa, ...(parsed.dnaEmpresa || {}) };
+      // Remove deprecated fields from old localStorage
+      delete (mergedDna as any).royalties;
+      delete (mergedDna as any).marketing;
       return recompute({
         ...initialState,
         ...parsed,
+        dnaEmpresa: mergedDna,
         custosInvisiveis: parsed.custosInvisiveis
           ? { ...initialCustosInvisiveis, ...parsed.custosInvisiveis, valeTransporte: { ...initialCustosInvisiveis.valeTransporte, ...(parsed.custosInvisiveis?.valeTransporte || {}) }, brindes: { ...initialCustosInvisiveis.brindes, ...(parsed.custosInvisiveis?.brindes || {}) }, alimentacao: { ...initialCustosInvisiveis.alimentacao, ...(parsed.custosInvisiveis?.alimentacao || {}) } }
           : initialCustosInvisiveis,
