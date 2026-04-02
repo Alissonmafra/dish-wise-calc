@@ -252,6 +252,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_CUSTOS_INVISIVEIS': return recompute({ ...state, custosInvisiveis: action.payload });
     case 'SET_DRE': return { ...state, dre: action.payload };
     case 'SET_DIAGNOSTICO': return { ...state, diagnosticoRespostas: action.payload };
+    case 'SET_SIMPLES_NACIONAL': return { ...state, simplesNacional: action.payload };
     case 'LOAD_STATE': return recompute(action.payload);
     default: return state;
   }
