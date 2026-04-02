@@ -1,59 +1,84 @@
 
 
-# Combos — Reescrita completa
+# Fechamento de Caixa — Reescrita completa
 
 ## Resumo
 
-Reescrever `src/pages/Combos.tsx` para seguir o layout da referência: cada combo como um card individual com cabeçalho de parâmetros (nome, DNA, lucro, taxas, preços calculados) e grade inferior de produtos com quantidade e CMV.
+Reescrever `src/pages/Fechamento.tsx` para incluir todos os campos detalhados (taxas por meio de pagamento como inputs manuais por linha), cálculos automáticos inline e um quadro de Consolidado Mensal ao lado da tabela.
 
 ## Alterações
 
-### 1. `src/pages/Combos.tsx` — Reescrever
+### 1. `src/types/index.ts` — Expandir `FechamentoDia`
 
-Substituir a implementação atual (modal-based) por uma tela com cards inline, sem modal.
+Adicionar campos de taxa por linha que antes eram fixos do DNA:
 
-**Layout por combo (card):**
+```typescript
+export interface FechamentoDia {
+  id: string;
+  data: string;
+  dinheiroPix: number;
+  debito: number;
+  taxaDebito: number;      // % manual por dia
+  credito: number;
+  taxaCredito: number;     // % manual por dia
+  ifood: number;
+  taxaIfood: number;       // % manual por dia
+  motoboyDiaria: number;
+  motoboyEntregas: number;
+  comprasCMV: number;
+}
+```
 
-Cabeçalho (tabela key-value, 2 colunas):
+### 2. `src/pages/Fechamento.tsx` — Reescrever
+
+**Layout**: Duas seções lado a lado (grid responsivo):
+- Esquerda: Tabela diária com todas as colunas + botão "Novo Dia"
+- Direita: Card "Consolidado Mensal" com tabela mês/entrada/saída/saldo
+
+**Tabela diária** — inline editável (sem modal). Cada linha tem:
+
 | Campo | Tipo |
 |---|---|
-| Nome do combo | Manual (input texto) |
-| Quantidade de Produtos do Combo | Auto (soma das quantidades da grade) |
-| DNA (%) | Auto (`dnaTotal` do contexto) |
-| Lucro Estimado (%) | Manual (input %) |
-| Custo do Combo \| Preço de Venda (R$) | Auto: `cmvTotal / (1 - dna - lucroEst)` |
-| Taxa iFood (%) | Manual (input %) |
-| Entrega (R$) | Manual (input R$) |
-| Custo do Combo \| Preço de Venda iFood (R$) | Auto: `((PV + entrega) / (1 - ifood)) + cupom` |
-| Cupom (R$) | Auto (default 0, ou manual se desejado — trataremos como manual para flexibilidade) |
+| Data | Manual |
+| Entrada Dinheiro + PIX (R$) | Manual |
+| Cartão de Débito (R$) | Manual |
+| Taxa Cartão de Débito (%) | Manual |
+| Cartão de Débito - Taxa (R$) | Auto: `debito - (debito × taxaDeb/100)` |
+| Cartão de Crédito (R$) | Manual |
+| Taxa Cartão de Crédito (%) | Manual |
+| Cartão de Crédito - Taxa (R$) | Auto: `credito - (credito × taxaCred/100)` |
+| iFood (R$) | Manual |
+| Taxa iFood (%) | Manual |
+| iFood - Taxa (R$) | Auto: `ifood - (ifood × taxaIfood/100)` |
+| Motoboy Diária (R$) | Manual |
+| Motoboy Entregas (R$) | Manual |
+| Compras CMV + Embalagem (R$) | Manual |
+| Entrada (R$) | Auto: `dinheiroPix + debito + credito + ifood` |
+| Saída (R$) | Auto: `taxaDebVal + taxaCredVal + taxaIfoodVal + motoboy + entregas + compras` |
+| Saldo (R$) | Auto: `entrada - saida` |
 
-**Grade inferior (tabela):**
-| Produto (select, apenas com ficha técnica/cmv>0) | Quantidade (manual) | CMV + Embalagem (R$) (auto: qtd × produto.cmv) |
+**Entrada por modal** para adicionar novo dia (formulário com os 11 campos manuais). Exclusão por botão na linha.
 
-**Validações:**
-- `DNA + Lucro >= 100%` → "Percentual inválido"
-- `iFood >= 100%` → "Percentual inválido"
-- Zebra-striping na grade
+**Consolidado Mensal**: Agrupa fechamentos por mês (YYYY-MM da data), soma entrada/saída/saldo por mês. Exibe como tabela simples: Mês | Entrada | Saída | Saldo.
 
-**Botões:** "Novo Combo" cria card vazio inline. Cada card tem botão excluir. Produtos adicionáveis/removíveis dentro de cada card.
+**Scroll horizontal** na tabela principal (muitas colunas). Zebra-striping.
 
-**Persistência:** Cada alteração faz `dispatch({ type: 'SET_COMBOS', payload })` para manter estado global e cascata de cálculos.
+### 3. `src/contexts/AppContext.tsx` — Sem alteração estrutural
 
-**Nota sobre Cupom:** A especificação diz que cupom deve ser automático (default 0), mas para manter flexibilidade prática, será um input com default 0 — consistente com a fórmula de PV iFood.
-
-### 2. Sem alteração em `App.tsx` ou `AppSidebar.tsx`
-
-Rota `/combos` e item "Combos" no menu já existem.
+O reducer já trata `SET_FECHAMENTOS`. Os novos campos (`taxaDebito`, `taxaCredito`, `taxaIfood`) serão persistidos normalmente via spread.
 
 ## Fórmulas
 
 ```text
-cmvTotal        = Σ (produto.cmv × quantidade)
-qtdProdutos     = Σ quantidade
-PV              = cmvTotal / (1 - DNA/100 - LucroEst/100)
-PV_iFood        = ((PV + Entrega) / (1 - iFood/100)) + Cupom
+debLiq   = debito - (debito × taxaDeb/100)
+credLiq  = credito - (credito × taxaCred/100)
+ifoodLiq = ifood - (ifood × taxaIfood/100)
+entrada  = dinheiroPix + debito + credito + ifood
+saida    = (debito × taxaDeb/100) + (credito × taxaCred/100) + (ifood × taxaIfood/100) + motoboyDiaria + motoboyEntregas + comprasCMV
+saldo    = entrada - saida
 ```
 
 ## Arquivos afetados
-- `src/pages/Combos.tsx` — reescrito
+- `src/types/index.ts` — expandir FechamentoDia
+- `src/pages/Fechamento.tsx` — reescrito
 
