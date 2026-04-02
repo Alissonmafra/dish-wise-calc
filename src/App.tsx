@@ -10,6 +10,7 @@ import Financeiro from "./pages/Financeiro";
 import Insumos from "./pages/Insumos";
 import FichasTecnicas from "./pages/FichasTecnicas";
 import FichaManipulacao from "./pages/FichaManipulacao";
+import FichaProduto from "./pages/FichaProduto";
 import Precificacao from "./pages/Precificacao";
 import Combos from "./pages/Combos";
 import Fechamento from "./pages/Fechamento";
