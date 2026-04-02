@@ -205,6 +205,8 @@ type Action =
   | { type: 'SET_FECHAMENTOS'; payload: FechamentoDia[] }
   | { type: 'SET_ITENS_CARDAPIO'; payload: ItemCardapio[] }
   | { type: 'SET_ITENS_MANIPULADOS'; payload: ItemManipulado[] }
+  | { type: 'SET_DRE'; payload: DREState }
+  | { type: 'SET_DIAGNOSTICO'; payload: DiagnosticoResposta[] }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
