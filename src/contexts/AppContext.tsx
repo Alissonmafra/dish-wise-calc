@@ -278,6 +278,23 @@ function loadState(): AppState {
       // Remove deprecated fields from old localStorage
       delete (mergedDna as any).royalties;
       delete (mergedDna as any).marketing;
+
+      // Migrate old DRE format (percentuais) to new format (valores)
+      let dre = initialState.dre;
+      if (parsed.dre) {
+        if (parsed.dre.valores && typeof parsed.dre.valores === 'object') {
+          // New format — merge with defaults to ensure all keys exist
+          const mergedValores = { ...initialState.dre.valores };
+          for (const key of Object.keys(parsed.dre.valores)) {
+            if (Array.isArray(parsed.dre.valores[key])) {
+              mergedValores[key] = parsed.dre.valores[key];
+            }
+          }
+          dre = { valores: mergedValores };
+        }
+        // Old format with percentuais — discard, use fresh initial state
+      }
+
       return recompute({
         ...initialState,
         ...parsed,
@@ -285,12 +302,16 @@ function loadState(): AppState {
         custosInvisiveis: parsed.custosInvisiveis
           ? { ...initialCustosInvisiveis, ...parsed.custosInvisiveis, valeTransporte: { ...initialCustosInvisiveis.valeTransporte, ...(parsed.custosInvisiveis?.valeTransporte || {}) }, brindes: { ...initialCustosInvisiveis.brindes, ...(parsed.custosInvisiveis?.brindes || {}) }, alimentacao: { ...initialCustosInvisiveis.alimentacao, ...(parsed.custosInvisiveis?.alimentacao || {}) } }
           : initialCustosInvisiveis,
-        dre: parsed.dre?.valores ? parsed.dre : initialState.dre,
+        dre,
         simplesNacional: parsed.simplesNacional ? { ...initialState.simplesNacional, ...parsed.simplesNacional } : initialState.simplesNacional,
         diagnosticoRespostas: parsed.diagnosticoRespostas || [],
       });
     }
-  } catch {}
+  } catch (e) {
+    console.error('Failed to load state from localStorage:', e);
+    // Clear corrupted state
+    localStorage.removeItem(STORAGE_KEY);
+  }
   return initialState;
 }
 
