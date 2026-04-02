@@ -558,59 +558,85 @@ export default function Financeiro() {
 
         {/* ===== DNA DA EMPRESA ===== */}
         <TabsContent value="dna" className="space-y-4">
+          {/* Educational Card */}
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex items-start gap-3 p-4">
+              <Info className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-foreground">O que é o DNA da Empresa?</p>
+                <p className="text-sm text-muted-foreground">O DNA da empresa é o custo estrutural percentual mínimo que cada produto precisa suportar antes do lucro. Todo produto precisa conter no mínimo o DNA da empresa embutido no preço. Esse percentual cobre a estrutura do negócio antes mesmo do lucro.</p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 DNA da Empresa
-                <Tooltip>
-                  <TooltipTrigger><Info className="h-4 w-4 text-muted-foreground" /></TooltipTrigger>
-                  <TooltipContent className="max-w-xs"><p>O DNA representa a soma de todos os percentuais de custos fixos e variáveis que incidem sobre o preço de venda.</p></TooltipContent>
-                </Tooltip>
               </CardTitle>
+              <CardDescription>Fórmula: Custo Fixo (%) + Média Cartão (%) + Impostos (%) + Voucher (%) {dna.isFranquia ? '+ Franquia (%)' : ''}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <Label className="text-muted-foreground">Custo Fixo (%) — automático</Label>
-                <p className="text-2xl font-bold">{formatPercent(dna.custoFixoPercent)}</p>
-                <p className="text-xs text-muted-foreground">Média dos percentuais mensais (Despesas Visíveis + Invisíveis / Faturamento)</p>
+            <CardContent className="space-y-6">
+              {/* Auto fields */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-xs text-muted-foreground">Custo Fixo (%) — automático</p>
+                  <p className="text-2xl font-bold">{formatPercent(dna.custoFixoPercent)}</p>
+                  <p className="text-[10px] text-muted-foreground">Média 12 meses (Visíveis + Invisíveis / Faturamento)</p>
+                </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-xs text-muted-foreground">Média Cartão (%) — automático</p>
+                  <p className="text-2xl font-bold">{formatPercent(dna.mediaCartao)}</p>
+                  <p className="text-[10px] text-muted-foreground">(Taxa Débito + Taxa Crédito) / 2</p>
+                </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-xs text-muted-foreground">Impostos (%) — automático</p>
+                  <p className="text-2xl font-bold">{formatPercent(dna.impostos)}</p>
+                  <p className="text-[10px] text-muted-foreground">Alíquota efetiva do Simples Nacional</p>
+                </div>
               </div>
 
+              {/* Manual fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {([
-                  ['taxaDebito', 'Taxa Máquina de Cartão Débito (%)'],
-                  ['taxaCredito', 'Taxa Máquina de Cartão Crédito (%)'],
-                ] as const).map(([key, label]) => (
-                  <div key={key}>
-                    <Label>{label}</Label>
-                    <Input type="number" step="0.1" value={dna[key]} onChange={e => updateDNA(key, parseFloat(e.target.value) || 0)} />
+                <div>
+                  <Label>Taxa Máquina de Cartão Débito (%)</Label>
+                  <Input type="number" step="0.1" value={dna.taxaDebito} onChange={e => updateDNA('taxaDebito', parseFloat(e.target.value) || 0)} />
+                </div>
+                <div>
+                  <Label>Taxa Máquina de Cartão Crédito (%)</Label>
+                  <Input type="number" step="0.1" value={dna.taxaCredito} onChange={e => updateDNA('taxaCredito', parseFloat(e.target.value) || 0)} />
+                </div>
+                <div>
+                  <Label>Voucher (%)</Label>
+                  <Input type="number" step="0.1" value={dna.voucher} onChange={e => updateDNA('voucher', parseFloat(e.target.value) || 0)} />
+                </div>
+              </div>
+
+              {/* Franchise toggle */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Switch checked={dna.isFranquia} onCheckedChange={v => updateDNA('isFranquia', v ? 1 : 0)} />
+                  <Label>A empresa é uma franquia?</Label>
+                </div>
+                {dna.isFranquia && (
+                  <div className="max-w-xs">
+                    <Label>Franquia (%)</Label>
+                    <Input type="number" step="0.1" value={dna.franquia} onChange={e => updateDNA('franquia', parseFloat(e.target.value) || 0)} />
                   </div>
-                ))}
+                )}
               </div>
 
-              <div className="p-4 bg-muted rounded-lg">
-                <Label className="text-muted-foreground">Média Taxa de Cartão Débito e Crédito (%) — automático</Label>
-                <p className="text-2xl font-bold">{formatPercent(dna.mediaCartao)}</p>
-                <p className="text-xs text-muted-foreground">(Taxa Débito + Taxa Crédito) / 2</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {([
-                  ['impostos', 'Imposto (%)'],
-                  ['royalties', 'Royalties (%)'],
-                  ['marketing', 'Marketing (%)'],
-                  ['voucher', 'Voucher (%)'],
-                ] as const).map(([key, label]) => (
-                  <div key={key}>
-                    <Label>{label}</Label>
-                    <Input type="number" step="0.1" value={dna[key]} onChange={e => updateDNA(key, parseFloat(e.target.value) || 0)} />
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                <p className="text-sm text-muted-foreground">Percentual Total Taxas (%)</p>
-                <p className="text-3xl font-bold text-primary">{formatPercent(dnaTotal)}</p>
-                <p className="text-xs text-muted-foreground">Custo Fixo + Média Cartão + Imposto + Royalties + Marketing + Voucher</p>
+              {/* DNA Result */}
+              <div className="p-6 bg-primary/10 rounded-lg border border-primary/20">
+                <p className="text-sm text-muted-foreground mb-1">DNA da Empresa (%)</p>
+                <p className="text-4xl font-bold text-primary">{formatPercent(dnaTotal)}</p>
+                <div className="mt-3 text-xs text-muted-foreground space-y-0.5">
+                  <p>Custo Fixo: {formatPercent(dna.custoFixoPercent)}</p>
+                  <p>Média Cartão: {formatPercent(dna.mediaCartao)}</p>
+                  <p>Impostos: {formatPercent(dna.impostos)}</p>
+                  <p>Voucher: {formatPercent(dna.voucher)}</p>
+                  {dna.isFranquia && <p>Franquia: {formatPercent(dna.franquia)}</p>}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -619,8 +645,8 @@ export default function Financeiro() {
             <CardContent className="flex items-start gap-3 p-4">
               <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
               <div>
-                <p className="font-semibold text-amber-800 dark:text-amber-300">IMPORTANTE</p>
-                <p className="text-sm text-amber-700 dark:text-amber-400">O Custo Fixo (%) é calculado automaticamente com base na média do percentual de custo fixo dos últimos 12 meses (Despesas Fixas Visíveis + Custos Invisíveis / Faturamento). Preencha corretamente as despesas fixas, custos invisíveis e o faturamento mensal para que este valor reflita a realidade do seu negócio.</p>
+                <p className="font-semibold text-amber-800 dark:text-amber-300">Regra de precificação</p>
+                <p className="text-sm text-amber-700 dark:text-amber-400">Preço de Venda = (CMV + Embalagem) / (1 - DNA% - Lucro%). O DNA representa tudo que precisa ser absorvido pela venda antes da margem de lucro.</p>
               </div>
             </CardContent>
           </Card>
