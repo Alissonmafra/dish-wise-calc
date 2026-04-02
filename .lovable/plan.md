@@ -1,39 +1,46 @@
 
 
-# Ajuste na Aba Faturamento Mensal
+# Refatorar DNA da Empresa
 
-## O que muda
+## Problemas atuais
+1. `mediaCartao` é um campo manual — deveria ser auto-calculado: `(taxaDebito + taxaCredito) / 2`
+2. `dnaTotal` soma taxaDebito + taxaCredito + mediaCartao (tripla contagem) — deveria usar apenas `mediaCartao`
+3. A UI mostra `mediaCartao` como campo editável — deveria ser read-only
+4. Falta o label "Percentual Total Taxas (%)" e bloco IMPORTANTE
 
-A aba "Faturamento" atual tem apenas uma tabela simples e um card de média. Precisa adicionar:
-1. Um gráfico de barras com valores acima das barras
-2. Um bloco de aviso "IMPORTANTE" com texto explicativo
-3. Melhorar o card de média com título correto
-4. Manter a coluna "Faturamento (R$)" com label correto
+## Alterações
 
-## Alterações em `src/pages/Financeiro.tsx`
+### 1. `src/contexts/AppContext.tsx`
 
-### Aba Faturamento (linhas 174-194)
+**recompute()** — após calcular `custoFixoPercent`, também calcular `mediaCartao`:
+```typescript
+const mediaCartao = (state.dnaEmpresa.taxaDebito + state.dnaEmpresa.taxaCredito) / 2;
+dnaEmpresa: { ...state.dnaEmpresa, custoFixoPercent, mediaCartao }
+```
 
-Reestruturar para conter:
+**dnaTotal** (linha 240) — corrigir para não duplicar taxas de cartão:
+```typescript
+const dnaTotal = dna.custoFixoPercent + dna.mediaCartao + dna.impostos + dna.royalties + dna.marketing + dna.voucher;
+```
 
-1. **Card "Média Faturamento Mensal (R$)"** — já existe, ajustar título para "Média Faturamento Mensal (R$)"
+### 2. `src/pages/Financeiro.tsx` — Aba DNA
 
-2. **Bloco de aviso** — Card amarelo/amber com:
-   - Título: "IMPORTANTE"
-   - Texto: "Faturamento: deverá ser preenchido com o valor do faturamento do mês, isso refletirá no cálculo do % Custo Fixo."
+Reorganizar a UI para mostrar:
 
-3. **Tabela** — manter como está, ajustar header para "Faturamento (R$)"
+- **Custo Fixo (%)** — bloco read-only (já existe)
+- **Taxa Máquina de Cartão Débito (%)** — input manual
+- **Taxa Máquina de Cartão Crédito (%)** — input manual
+- **Média Taxa de Cartão Débito e Crédito (%)** — bloco read-only, calculado automaticamente
+- **Imposto (%)** — input manual
+- **Royalties (%)** — input manual
+- **Marketing (%)** — input manual
+- **Voucher (%)** — input manual
+- **Percentual Total Taxas (%)** — bloco destacado read-only (substituindo "DNA Total")
+- Bloco IMPORTANTE amarelo: "Selecione nesta opção a Média do % de Custo Fixo ou o mês que deverá ser considerado..."
 
-4. **Gráfico de barras** — usar Recharts (já instalado no projeto):
-   - `BarChart` com eixo X = meses, eixo Y = faturamento
-   - `LabelList` para mostrar valor em R$ acima de cada barra
-   - Mostrar apenas meses com valor > 0 nas barras (todos os meses no eixo X)
-   - Título "Faturamento Mensal" acima do gráfico
+### 3. `src/types/index.ts` — sem alterações (interface já tem todos os campos)
 
-### Imports necessários
-- Adicionar `BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LabelList` de `recharts`
-- Adicionar `AlertTriangle` de `lucide-react` (opcional, para o ícone do aviso)
-
-## Arquivo afetado
-- `src/pages/Financeiro.tsx` — apenas a seção `TabsContent value="faturamento"`
+## Arquivos afetados
+- `src/contexts/AppContext.tsx` — mediaCartao auto-calculado + dnaTotal corrigido
+- `src/pages/Financeiro.tsx` — aba DNA reorganizada
 
