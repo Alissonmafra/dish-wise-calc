@@ -1,55 +1,64 @@
 
 
-# Refatorar Cadastro de Insumos e Matéria-Prima
+# Ficha Técnica de Manipulação
 
 ## Resumo
 
-A tela de Insumos já existe com CRUD funcional. As alterações são incrementais para alinhar com a especificação.
+Criar uma nova página dedicada exclusivamente às fichas técnicas de receitas manipuladas, separada da tela genérica atual `FichasTecnicas.tsx`. A página permitirá montar a composição de cada receita base com cálculos automáticos de custo.
+
+## Abordagem
+
+A tela atual `FichasTecnicas.tsx` mistura receitas e produtos em abas. A nova tela será independente, focada apenas em receitas manipuladas, com interface alinhada à imagem de referência (cabeçalho com nome/quantidade/medida/custo + tabela de insumos).
+
+Os dados já existem no estado global (`state.receitas` do tipo `ReceitaManipulacao[]`) e a lógica de cálculo em cascata já funciona no `AppContext`.
 
 ## Alterações
 
-### 1. `src/pages/Insumos.tsx` — Refatorar UI
+### 1. `src/pages/FichaManipulacao.tsx` — Nova página
 
-**Título**: Alterar para "Cadastro de Insumos e Matéria-Prima" com subtítulo descritivo.
+**Cabeçalho da ficha (por receita):**
+- **Nome da Receita**: Select puxando de `state.itensManipulados` (não digitação livre)
+- **Quantidade Produzida**: Input numérico manual
+- **Medida**: Select com Gramas/Mililitros/Unidade
+- **Custo da Receita (R$)**: Calculado automaticamente (soma das linhas), não editável
 
-**Unidades simplificadas**: Reduzir para 3 opções obrigatórias:
-- Grama (gr) → valor interno `g`
-- Mililitro (ml) → valor interno `ml`
-- Unidade (und) → valor interno `un`
+**Tabela de insumos (por receita):**
+- Item (sequencial)
+- Insumos (select puxando de `state.insumos`)
+- Unidade de Medida (auto-preenchida do insumo selecionado, não editável)
+- Quantidade (input manual)
+- Preço R$ (calculado: quantidade × custoPorUnidade do insumo, não editável)
 
-Remover `kg` e `L` da lista.
+**Layout**: Exibir cada receita como um card individual (similar à imagem de referência — formulário de cabeçalho + tabela). Botão para criar nova ficha. Zebra-striping nas linhas.
 
-**KPI Card**: Adicionar card "Total Insumos Cadastrados" com contagem automática (como nas telas de Itens do Cardápio e Itens Manipulados).
+**Validação ao salvar**:
+- Nome da receita obrigatório
+- Quantidade produzida > 0
+- Medida obrigatória
+- Pelo menos 1 insumo adicionado
+- Toast de erro para campos faltantes
 
-**Coluna "Item"**: Adicionar número sequencial (1, 2, 3...) como primeira coluna da tabela.
+**Cálculos automáticos (já existentes no AppContext)**:
+- `custoTotal` = soma de (quantidade × custoPorUnidade) de cada ingrediente
+- `custoPorUnidade` = custoTotal / quantidadeProduzida
+- Recálculo em cascata quando insumos mudam
 
-**Coluna "Preço por Unidade de Medida"**: Substituir a coluna genérica "Custo/Unidade" por exibição descritiva:
-- `R$ 0,0444 por gr`
-- `R$ 0,0111 por ml`
-- `R$ 0,3000 por und`
+### 2. `src/App.tsx` — Nova rota
 
-Helper de sigla: `g → gr`, `ml → ml`, `un → und`.
+Adicionar `/ficha-manipulacao` → `<FichaManipulacao />`
 
-**Validação de duplicidade**: Ao salvar, verificar se já existe insumo com mesmo nome (case-insensitive), excluindo o próprio item em edição. Exibir toast de alerta.
+### 3. `src/components/AppSidebar.tsx` — Novo item no menu
 
-**Zebra-striping**: Adicionar alternância de cor nas linhas da tabela (padrão das outras telas).
+Adicionar "Ficha Técnica Manipulação" posicionado após "Insumos", antes de "Fichas Técnicas" existente.
 
-**Renomear colunas** conforme imagem de referência:
-- "Qtd Comprada" → "Peso/Qtd"
-- "Preço Pago" → "Preço (R$)"
-- "Perda %" → "Perda (%)"
-- "Qtd Real" → "Peso/Qtd Real"
-- "Custo/Unidade" → "Preço Real (R$)"
-- Nova coluna: "Preço (R$) por Unidade de Medida"
+### 4. Sem alterações em tipos ou contexto
 
-### 2. Sem alterações em tipos ou contexto
+- `ReceitaManipulacao` e `ReceitaIngrediente` já existem nos tipos
+- `SET_RECEITAS` e `computeReceitaCusto` já existem no AppContext
+- A lógica de cascata (receita → produto → combo) já funciona
 
-A lógica de cálculo em `AppContext.tsx` já está correta:
-- `quantidadeReal = quantidadeComprada * (1 - percentualPerda / 100)` ✓
-- `custoPorUnidade = precoPago / quantidadeReal` ✓
-
-A interface `Insumo` e o reducer `SET_INSUMOS` já existem.
-
-## Arquivo afetado
-- `src/pages/Insumos.tsx`
+## Arquivos afetados
+- `src/pages/FichaManipulacao.tsx` (novo)
+- `src/App.tsx` — nova rota
+- `src/components/AppSidebar.tsx` — novo item menu
 
