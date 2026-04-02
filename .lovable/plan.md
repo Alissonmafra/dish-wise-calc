@@ -1,52 +1,69 @@
 
 
-# Lucro Atual
+# Preço de Venda (PV)
 
 ## Resumo
 
-Criar uma nova página "Lucro Atual" que mostra o diagnóstico de lucro/prejuízo de cada produto com ficha técnica, baseado no preço de venda praticado hoje.
+Criar a página "Preço de Venda (PV)" com cálculos automáticos de preço ideal para cardápio normal, iFood e cardápio fantasma. Também corrigir o build error residual no `LucroAtual.tsx`.
+
+## Bug fix
+
+O arquivo `LucroAtual.tsx` atual já usa `formatBRL` (não `formatCurrency`). O erro de build é stale — será resolvido ao triggerar um rebuild com as novas alterações.
 
 ## Alterações
 
-### 1. `src/pages/LucroAtual.tsx` — Nova página
+### 1. `src/pages/Precificacao.tsx` — Reescrever como "Preço de Venda (PV)"
 
-**Estrutura**: Tabela com linhas dinâmicas (adicionar/editar/excluir). Cada linha representa um produto em análise.
+Substituir o conteúdo atual pela nova tela completa.
 
-**Colunas da tabela:**
-- **Item** — sequencial automático
-- **Produto** — Select com `state.produtos` (somente produtos com ficha técnica/CMV > 0)
-- **Valor de Venda Atual (R$)** — Input manual
-- **DNA (%)** — Auto-preenchido com `dnaTotal` do contexto, não editável
-- **Entrega (R$)** — Input manual (default 0)
-- **CMV + Embalagem (R$)** — Auto-preenchido com `produto.cmv`, não editável
-- **Lucro Atual (R$)** — Calculado: `vendaAtual - (vendaAtual × DNA/100) - entrega - cmv`
-- **Lucro/Prejuízo Atual (%)** — Calculado: `(lucroAtual / vendaAtual) × 100`
+**Tabela dinâmica** com linhas adicionáveis/editáveis/excluíveis. Cada linha contém:
 
-**KPI/Resumo**: Card separado com "Média de Lucro/Prejuízo Atual (%)" — média dos percentuais de linhas com produto e valor de venda preenchidos.
+| Campo | Tipo | Origem |
+|-------|------|--------|
+| Item | Auto (sequencial) | — |
+| Produto | Select | `state.produtos` com cmv > 0 |
+| CMV + Embalagem (R$) | Auto | `produto.cmv` |
+| DNA (%) | Auto | `dnaTotal` do contexto |
+| Lucro Estimado (%) | Manual | Input % |
+| Preço de Venda (R$) | Auto | `cmv / (1 - dna - lucro)` |
+| iFood (%) | Manual | Input % |
+| Entrega (R$) | Manual | Input R$ |
+| Preço de Venda iFood (R$) | Auto | `((PV + entrega) / (1 - ifood)) + cupom` |
+| Cupom (R$) | Manual | Input R$ |
+| Lucro Est. Cardápio Fantasma (%) | Manual | Input % |
+| PV Cardápio Fantasma (R$) | Auto | `cmv / (1 - dna - lucroFantasma)` |
+| PV iFood Cardápio Fantasma (R$) | Auto | `((pvFantasma + entrega) / (1 - ifood)) + cupomFantasma` |
+| Cupom Cardápio Fantasma (R$) | Manual | Input R$ |
 
-**Validação visual**: Quando valor de venda é 0 ou vazio, exibir "-" nos campos calculados. Lucro negativo em vermelho, positivo em verde.
+**KPIs (cards resumo)**:
+- Média de Lucro Estimado (%)
+- Média de Lucro Estimado Cardápio Fantasma (%)
 
-**Zebra-striping** nas linhas. Estado local para as linhas (produto selecionado, valor de venda, entrega).
+**Validações**:
+- Se `DNA + Lucro Estimado >= 100%` → exibir "Percentual inválido" em vez do preço
+- Se `iFood >= 100%` → exibir "Percentual inválido"
+- Linhas sem produto ou com campos vazios → exibir "-"
 
-### 2. `src/App.tsx` — Nova rota
+**Visual**: Zebra-striping, campos auto em texto muted não editável, layout responsivo com scroll horizontal para a tabela larga.
 
-Adicionar `/lucro-atual` → `<LucroAtual />`
+### 2. `src/App.tsx` — Sem alteração
 
-### 3. `src/components/AppSidebar.tsx` — Novo item no menu
+A rota `/precificacao` já existe e aponta para `Precificacao.tsx`.
 
-Adicionar "Lucro Atual" após "Ficha Técnica Produto", com ícone `TrendingUp` ou similar.
+### 3. `src/components/AppSidebar.tsx` — Renomear item
 
-## Lógica de cálculo
+Renomear "Precificação" para "Preço de Venda (PV)" no menu lateral.
+
+## Fórmulas
 
 ```text
-taxasDNA_reais = vendaAtual × (dnaTotal / 100)
-lucroAtual     = vendaAtual - taxasDNA_reais - entrega - cmv
-lucroPct       = (lucroAtual / vendaAtual) × 100
-mediaPct       = média de lucroPct de todas as linhas válidas
+PV = CMV / (1 - DNA/100 - LucroEst/100)
+PV_iFood = ((PV + Entrega) / (1 - iFood/100)) + Cupom
+PV_Fantasma = CMV / (1 - DNA/100 - LucroFantasma/100)
+PV_iFood_Fantasma = ((PV_Fantasma + Entrega) / (1 - iFood/100)) + CupomFantasma
 ```
 
 ## Arquivos afetados
-- `src/pages/LucroAtual.tsx` (novo)
-- `src/App.tsx` — nova rota
-- `src/components/AppSidebar.tsx` — novo item menu
+- `src/pages/Precificacao.tsx` — reescrito
+- `src/components/AppSidebar.tsx` — renomear item menu
 
