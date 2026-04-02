@@ -170,12 +170,12 @@ export default function LucroAtual() {
                         />
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {linha.produtoId ? formatCurrency(calc.cmv) : '-'}
+                        {linha.produtoId ? formatBRL(calc.cmv) : '-'}
                       </TableCell>
                       <TableCell>
                         {calc.valid ? (
                           <span className={calc.lucro! >= 0 ? 'text-green-600 font-semibold' : 'text-destructive font-semibold'}>
-                            {formatCurrency(calc.lucro!)}
+                            {formatBRL(calc.lucro!)}
                           </span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
