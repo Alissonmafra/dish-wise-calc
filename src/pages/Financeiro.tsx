@@ -228,25 +228,23 @@ export default function Financeiro() {
                 DNA da Empresa
                 <Tooltip>
                   <TooltipTrigger><Info className="h-4 w-4 text-muted-foreground" /></TooltipTrigger>
-                  <TooltipContent className="max-w-xs"><p>O DNA representa a soma de todos os percentuais de custos fixos e variáveis que incidem sobre o preço de venda. É usado para calcular o preço ideal dos produtos.</p></TooltipContent>
+                  <TooltipContent className="max-w-xs"><p>O DNA representa a soma de todos os percentuais de custos fixos e variáveis que incidem sobre o preço de venda.</p></TooltipContent>
                 </Tooltip>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Custo Fixo - automático */}
+              <div className="p-4 bg-muted rounded-lg">
+                <Label className="text-muted-foreground">Custo Fixo (%) — automático</Label>
+                <p className="text-2xl font-bold">{formatPercent(dna.custoFixoPercent)}</p>
+                <p className="text-xs text-muted-foreground">Média dos percentuais mensais (Despesas Fixas / Faturamento)</p>
+              </div>
+
+              {/* Campos manuais */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-muted rounded-lg">
-                  <Label className="text-muted-foreground">Custo Fixo % (automático)</Label>
-                  <p className="text-2xl font-bold">{formatPercent(dna.custoFixoPercent)}</p>
-                  <p className="text-xs text-muted-foreground">Média dos percentuais mensais (Despesas / Faturamento)</p>
-                </div>
                 {([
-                  ['taxaDebito', 'Taxa Débito (%)'],
-                  ['taxaCredito', 'Taxa Crédito (%)'],
-                  ['mediaCartao', 'Média Cartão (%)'],
-                  ['impostos', 'Impostos (%)'],
-                  ['royalties', 'Royalties (%)'],
-                  ['marketing', 'Marketing (%)'],
-                  ['voucher', 'Voucher/Benefícios (%)'],
+                  ['taxaDebito', 'Taxa Máquina de Cartão Débito (%)'],
+                  ['taxaCredito', 'Taxa Máquina de Cartão Crédito (%)'],
                 ] as const).map(([key, label]) => (
                   <div key={key}>
                     <Label>{label}</Label>
@@ -254,9 +252,43 @@ export default function Financeiro() {
                   </div>
                 ))}
               </div>
+
+              {/* Média Cartão - automático */}
+              <div className="p-4 bg-muted rounded-lg">
+                <Label className="text-muted-foreground">Média Taxa de Cartão Débito e Crédito (%) — automático</Label>
+                <p className="text-2xl font-bold">{formatPercent(dna.mediaCartao)}</p>
+                <p className="text-xs text-muted-foreground">(Taxa Débito + Taxa Crédito) / 2</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {([
+                  ['impostos', 'Imposto (%)'],
+                  ['royalties', 'Royalties (%)'],
+                  ['marketing', 'Marketing (%)'],
+                  ['voucher', 'Voucher (%)'],
+                ] as const).map(([key, label]) => (
+                  <div key={key}>
+                    <Label>{label}</Label>
+                    <Input type="number" step="0.1" value={dna[key]} onChange={e => updateDNA(key, parseFloat(e.target.value) || 0)} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Percentual Total Taxas - automático */}
               <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                <p className="text-sm text-muted-foreground">DNA Total</p>
+                <p className="text-sm text-muted-foreground">Percentual Total Taxas (%)</p>
                 <p className="text-3xl font-bold text-primary">{formatPercent(dnaTotal)}</p>
+                <p className="text-xs text-muted-foreground">Custo Fixo + Média Cartão + Imposto + Royalties + Marketing + Voucher</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700">
+            <CardContent className="flex items-start gap-3 p-4">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-amber-800 dark:text-amber-300">IMPORTANTE</p>
+                <p className="text-sm text-amber-700 dark:text-amber-400">O Custo Fixo (%) é calculado automaticamente com base na média do percentual de custo fixo dos últimos 12 meses (Despesas Fixas / Faturamento). Preencha corretamente as despesas fixas e o faturamento mensal para que este valor reflita a realidade do seu negócio.</p>
               </div>
             </CardContent>
           </Card>
