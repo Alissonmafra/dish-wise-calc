@@ -1,61 +1,52 @@
 
 
-# Ficha Técnica do Produto (Cardápio)
+# Lucro Atual
 
 ## Resumo
 
-Criar uma nova página dedicada para montar fichas técnicas dos produtos do cardápio, permitindo combinar insumos simples e receitas manipuladas com cálculo automático de custo. A página substituirá a aba "Produtos do Cardápio" da tela genérica `FichasTecnicas.tsx`.
+Criar uma nova página "Lucro Atual" que mostra o diagnóstico de lucro/prejuízo de cada produto com ficha técnica, baseado no preço de venda praticado hoje.
 
 ## Alterações
 
-### 1. `src/pages/FichaProduto.tsx` — Nova página
+### 1. `src/pages/LucroAtual.tsx` — Nova página
 
-**Layout por produto**: Cada ficha como um card individual (similar à referência), com:
+**Estrutura**: Tabela com linhas dinâmicas (adicionar/editar/excluir). Cada linha representa um produto em análise.
 
-**Cabeçalho:**
-- **Item do Cardápio**: Select puxando de `state.itensCardapio`
-- **Quantidade Produzida**: Input numérico (default 1)
-- **Custo do Produto (R$)**: Calculado automaticamente, não editável
+**Colunas da tabela:**
+- **Item** — sequencial automático
+- **Produto** — Select com `state.produtos` (somente produtos com ficha técnica/CMV > 0)
+- **Valor de Venda Atual (R$)** — Input manual
+- **DNA (%)** — Auto-preenchido com `dnaTotal` do contexto, não editável
+- **Entrega (R$)** — Input manual (default 0)
+- **CMV + Embalagem (R$)** — Auto-preenchido com `produto.cmv`, não editável
+- **Lucro Atual (R$)** — Calculado: `vendaAtual - (vendaAtual × DNA/100) - entrega - cmv`
+- **Lucro/Prejuízo Atual (%)** — Calculado: `(lucroAtual / vendaAtual) × 100`
 
-**Tabela de composição:**
-- Item (sequencial)
-- Insumos (select unificado: insumos do cadastro + receitas manipuladas, agrupados)
-- Unidade de Medida (auto-preenchida conforme origem, não editável)
-- Quantidade (manual)
-- Preço R$ (calculado: quantidade × custo unitário da origem)
+**KPI/Resumo**: Card separado com "Média de Lucro/Prejuízo Atual (%)" — média dos percentuais de linhas com produto e valor de venda preenchidos.
 
-**Seleção de insumos**: O select combina `state.insumos` e `state.receitas` num único dropdown, com prefixo ou grupo para distinguir tipo. Ao selecionar, o sistema identifica se é `tipo: 'insumo'` ou `tipo: 'receita'` e preenche a unidade automaticamente.
+**Validação visual**: Quando valor de venda é 0 ou vazio, exibir "-" nos campos calculados. Lucro negativo em vermelho, positivo em verde.
 
-**KPI Card**: "Total de Fichas Cadastradas" com contagem.
-
-**Validação ao salvar**:
-- Item do cardápio obrigatório
-- Quantidade produzida > 0
-- Pelo menos 1 item na composição
-
-**Zebra-striping** nas linhas da tabela.
-
-**Custo unitário por linha**:
-- Insumo: `quantidade × insumo.custoPorUnidade`
-- Receita manipulada: `quantidade × receita.custoPorUnidade`
+**Zebra-striping** nas linhas. Estado local para as linhas (produto selecionado, valor de venda, entrega).
 
 ### 2. `src/App.tsx` — Nova rota
 
-Adicionar `/ficha-produto` → `<FichaProduto />`
+Adicionar `/lucro-atual` → `<LucroAtual />`
 
-### 3. `src/components/AppSidebar.tsx` — Atualizar menu
+### 3. `src/components/AppSidebar.tsx` — Novo item no menu
 
-Renomear "Fichas Técnicas" para "Ficha Técnica Produto" e apontar para `/ficha-produto`. Usar a rota da nova página.
+Adicionar "Lucro Atual" após "Ficha Técnica Produto", com ícone `TrendingUp` ou similar.
 
-### 4. Sem alterações em tipos ou contexto
+## Lógica de cálculo
 
-- `ProdutoCardapio`, `ProdutoIngrediente` já existem com `tipo: 'insumo' | 'receita'`
-- `SET_PRODUTOS` e `computeProdutoCMV` já existem no AppContext
-- A lógica de cascata (insumo → receita → produto → combo) já funciona
-- O campo `custoEmbalagem` do tipo será mantido (pode ser incorporado como linha de insumo embalagem na ficha)
+```text
+taxasDNA_reais = vendaAtual × (dnaTotal / 100)
+lucroAtual     = vendaAtual - taxasDNA_reais - entrega - cmv
+lucroPct       = (lucroAtual / vendaAtual) × 100
+mediaPct       = média de lucroPct de todas as linhas válidas
+```
 
 ## Arquivos afetados
-- `src/pages/FichaProduto.tsx` (novo)
+- `src/pages/LucroAtual.tsx` (novo)
 - `src/App.tsx` — nova rota
-- `src/components/AppSidebar.tsx` — atualizar item menu
+- `src/components/AppSidebar.tsx` — novo item menu
 
