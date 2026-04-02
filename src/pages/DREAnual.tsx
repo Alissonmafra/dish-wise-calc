@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { calcularImpostoSimples } from '@/lib/simplesNacionalCalc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import type { DREPercentuais } from '@/types';
