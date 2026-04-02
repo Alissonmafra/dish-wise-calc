@@ -1,62 +1,55 @@
 
 
-# Módulo: Itens Manipulados (Receitas) + Fix de erro
+# Refatorar Cadastro de Insumos e Matéria-Prima
 
-## Bug atual (fix silencioso)
+## Resumo
 
-`state.itensCardapio` é `undefined` ao carregar do localStorage (dados antigos sem esse campo). A `loadState()` precisa garantir defaults para campos novos. Mesmo problema afetará o novo `itensManipulados`.
+A tela de Insumos já existe com CRUD funcional. As alterações são incrementais para alinhar com a especificação.
 
-**Fix em `AppContext.tsx`**: Na função `loadState`, após o parse, fazer merge com `initialState` para garantir campos faltantes:
-```typescript
-if (saved) {
-  const parsed = JSON.parse(saved);
-  return recompute({ ...initialState, ...parsed });
-}
-```
+## Alterações
 
-## Novo módulo: Itens Manipulados (Receitas)
+### 1. `src/pages/Insumos.tsx` — Refatorar UI
 
-### 1. `src/types/index.ts`
+**Título**: Alterar para "Cadastro de Insumos e Matéria-Prima" com subtítulo descritivo.
 
-Adicionar novo tipo e campo ao AppState:
-```typescript
-export interface ItemManipulado {
-  id: string;
-  nome: string;
-}
-```
-Adicionar `itensManipulados: ItemManipulado[]` ao `AppState`.
+**Unidades simplificadas**: Reduzir para 3 opções obrigatórias:
+- Grama (gr) → valor interno `g`
+- Mililitro (ml) → valor interno `ml`
+- Unidade (und) → valor interno `un`
 
-### 2. `src/contexts/AppContext.tsx`
+Remover `kg` e `L` da lista.
 
-- Adicionar `itensManipulados: []` ao `initialState`
-- Adicionar action `SET_ITENS_MANIPULADOS` ao tipo `Action`
-- Adicionar case no reducer: `return { ...state, itensManipulados: action.payload }`
-- Fix do `loadState` com merge (resolve bug atual + futuro)
+**KPI Card**: Adicionar card "Total Insumos Cadastrados" com contagem automática (como nas telas de Itens do Cardápio e Itens Manipulados).
 
-### 3. `src/pages/ItensManipulados.tsx` (novo)
+**Coluna "Item"**: Adicionar número sequencial (1, 2, 3...) como primeira coluna da tabela.
 
-Estrutura idêntica ao `ItensCardapio.tsx`, com ajustes:
-- Título: "Itens Manipulados (Receitas)"
-- Subtítulo: "Cadastre todas as receitas base, preparos intermediários e pré-produções"
-- Card KPI: "Total Receitas Cadastradas"
-- Tabela: colunas "Item" (sequencial) e "Nome da Receita"
-- Placeholder campo: "Ex: Massa salgada, Molho de tomate, Maionese da casa..."
-- CRUD completo com validação de duplicidade
-- Zebra-striping nas linhas
+**Coluna "Preço por Unidade de Medida"**: Substituir a coluna genérica "Custo/Unidade" por exibição descritiva:
+- `R$ 0,0444 por gr`
+- `R$ 0,0111 por ml`
+- `R$ 0,3000 por und`
 
-### 4. `src/App.tsx`
+Helper de sigla: `g → gr`, `ml → ml`, `un → und`.
 
-Adicionar rota `/itens-manipulados` → `<ItensManipulados />`
+**Validação de duplicidade**: Ao salvar, verificar se já existe insumo com mesmo nome (case-insensitive), excluindo o próprio item em edição. Exibir toast de alerta.
 
-### 5. `src/components/AppSidebar.tsx`
+**Zebra-striping**: Adicionar alternância de cor nas linhas da tabela (padrão das outras telas).
 
-Adicionar "Itens Manipulados" com ícone `ChefHat`, posicionado após "Itens do Cardápio".
+**Renomear colunas** conforme imagem de referência:
+- "Qtd Comprada" → "Peso/Qtd"
+- "Preço Pago" → "Preço (R$)"
+- "Perda %" → "Perda (%)"
+- "Qtd Real" → "Peso/Qtd Real"
+- "Custo/Unidade" → "Preço Real (R$)"
+- Nova coluna: "Preço (R$) por Unidade de Medida"
 
-## Arquivos afetados
-- `src/types/index.ts` — novo tipo + AppState
-- `src/contexts/AppContext.tsx` — novo estado + fix loadState
-- `src/pages/ItensManipulados.tsx` — nova página
-- `src/App.tsx` — nova rota
-- `src/components/AppSidebar.tsx` — novo item menu
+### 2. Sem alterações em tipos ou contexto
+
+A lógica de cálculo em `AppContext.tsx` já está correta:
+- `quantidadeReal = quantidadeComprada * (1 - percentualPerda / 100)` ✓
+- `custoPorUnidade = precoPago / quantidadeReal` ✓
+
+A interface `Insumo` e o reducer `SET_INSUMOS` já existem.
+
+## Arquivo afetado
+- `src/pages/Insumos.tsx`
 
