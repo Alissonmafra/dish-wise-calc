@@ -221,6 +221,8 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_FECHAMENTOS': return { ...state, fechamentos: action.payload };
     case 'SET_ITENS_CARDAPIO': return { ...state, itensCardapio: action.payload };
     case 'SET_ITENS_MANIPULADOS': return { ...state, itensManipulados: action.payload };
+    case 'SET_DRE': return { ...state, dre: action.payload };
+    case 'SET_DIAGNOSTICO': return { ...state, diagnosticoRespostas: action.payload };
     case 'LOAD_STATE': return recompute(action.payload);
     default: return state;
   }
