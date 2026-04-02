@@ -1,69 +1,59 @@
 
 
-# Preço de Venda (PV)
+# Combos — Reescrita completa
 
 ## Resumo
 
-Criar a página "Preço de Venda (PV)" com cálculos automáticos de preço ideal para cardápio normal, iFood e cardápio fantasma. Também corrigir o build error residual no `LucroAtual.tsx`.
-
-## Bug fix
-
-O arquivo `LucroAtual.tsx` atual já usa `formatBRL` (não `formatCurrency`). O erro de build é stale — será resolvido ao triggerar um rebuild com as novas alterações.
+Reescrever `src/pages/Combos.tsx` para seguir o layout da referência: cada combo como um card individual com cabeçalho de parâmetros (nome, DNA, lucro, taxas, preços calculados) e grade inferior de produtos com quantidade e CMV.
 
 ## Alterações
 
-### 1. `src/pages/Precificacao.tsx` — Reescrever como "Preço de Venda (PV)"
+### 1. `src/pages/Combos.tsx` — Reescrever
 
-Substituir o conteúdo atual pela nova tela completa.
+Substituir a implementação atual (modal-based) por uma tela com cards inline, sem modal.
 
-**Tabela dinâmica** com linhas adicionáveis/editáveis/excluíveis. Cada linha contém:
+**Layout por combo (card):**
 
-| Campo | Tipo | Origem |
-|-------|------|--------|
-| Item | Auto (sequencial) | — |
-| Produto | Select | `state.produtos` com cmv > 0 |
-| CMV + Embalagem (R$) | Auto | `produto.cmv` |
-| DNA (%) | Auto | `dnaTotal` do contexto |
-| Lucro Estimado (%) | Manual | Input % |
-| Preço de Venda (R$) | Auto | `cmv / (1 - dna - lucro)` |
-| iFood (%) | Manual | Input % |
-| Entrega (R$) | Manual | Input R$ |
-| Preço de Venda iFood (R$) | Auto | `((PV + entrega) / (1 - ifood)) + cupom` |
-| Cupom (R$) | Manual | Input R$ |
-| Lucro Est. Cardápio Fantasma (%) | Manual | Input % |
-| PV Cardápio Fantasma (R$) | Auto | `cmv / (1 - dna - lucroFantasma)` |
-| PV iFood Cardápio Fantasma (R$) | Auto | `((pvFantasma + entrega) / (1 - ifood)) + cupomFantasma` |
-| Cupom Cardápio Fantasma (R$) | Manual | Input R$ |
+Cabeçalho (tabela key-value, 2 colunas):
+| Campo | Tipo |
+|---|---|
+| Nome do combo | Manual (input texto) |
+| Quantidade de Produtos do Combo | Auto (soma das quantidades da grade) |
+| DNA (%) | Auto (`dnaTotal` do contexto) |
+| Lucro Estimado (%) | Manual (input %) |
+| Custo do Combo \| Preço de Venda (R$) | Auto: `cmvTotal / (1 - dna - lucroEst)` |
+| Taxa iFood (%) | Manual (input %) |
+| Entrega (R$) | Manual (input R$) |
+| Custo do Combo \| Preço de Venda iFood (R$) | Auto: `((PV + entrega) / (1 - ifood)) + cupom` |
+| Cupom (R$) | Auto (default 0, ou manual se desejado — trataremos como manual para flexibilidade) |
 
-**KPIs (cards resumo)**:
-- Média de Lucro Estimado (%)
-- Média de Lucro Estimado Cardápio Fantasma (%)
+**Grade inferior (tabela):**
+| Produto (select, apenas com ficha técnica/cmv>0) | Quantidade (manual) | CMV + Embalagem (R$) (auto: qtd × produto.cmv) |
 
-**Validações**:
-- Se `DNA + Lucro Estimado >= 100%` → exibir "Percentual inválido" em vez do preço
-- Se `iFood >= 100%` → exibir "Percentual inválido"
-- Linhas sem produto ou com campos vazios → exibir "-"
+**Validações:**
+- `DNA + Lucro >= 100%` → "Percentual inválido"
+- `iFood >= 100%` → "Percentual inválido"
+- Zebra-striping na grade
 
-**Visual**: Zebra-striping, campos auto em texto muted não editável, layout responsivo com scroll horizontal para a tabela larga.
+**Botões:** "Novo Combo" cria card vazio inline. Cada card tem botão excluir. Produtos adicionáveis/removíveis dentro de cada card.
 
-### 2. `src/App.tsx` — Sem alteração
+**Persistência:** Cada alteração faz `dispatch({ type: 'SET_COMBOS', payload })` para manter estado global e cascata de cálculos.
 
-A rota `/precificacao` já existe e aponta para `Precificacao.tsx`.
+**Nota sobre Cupom:** A especificação diz que cupom deve ser automático (default 0), mas para manter flexibilidade prática, será um input com default 0 — consistente com a fórmula de PV iFood.
 
-### 3. `src/components/AppSidebar.tsx` — Renomear item
+### 2. Sem alteração em `App.tsx` ou `AppSidebar.tsx`
 
-Renomear "Precificação" para "Preço de Venda (PV)" no menu lateral.
+Rota `/combos` e item "Combos" no menu já existem.
 
 ## Fórmulas
 
 ```text
-PV = CMV / (1 - DNA/100 - LucroEst/100)
-PV_iFood = ((PV + Entrega) / (1 - iFood/100)) + Cupom
-PV_Fantasma = CMV / (1 - DNA/100 - LucroFantasma/100)
-PV_iFood_Fantasma = ((PV_Fantasma + Entrega) / (1 - iFood/100)) + CupomFantasma
+cmvTotal        = Σ (produto.cmv × quantidade)
+qtdProdutos     = Σ quantidade
+PV              = cmvTotal / (1 - DNA/100 - LucroEst/100)
+PV_iFood        = ((PV + Entrega) / (1 - iFood/100)) + Cupom
 ```
 
 ## Arquivos afetados
-- `src/pages/Precificacao.tsx` — reescrito
-- `src/components/AppSidebar.tsx` — renomear item menu
+- `src/pages/Combos.tsx` — reescrito
 
