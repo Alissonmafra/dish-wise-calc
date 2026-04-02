@@ -182,6 +182,16 @@ const initialState: AppState = recompute({
   fechamentos: [],
   itensCardapio: [],
   itensManipulados: [],
+  dre: {
+    percentuais: {
+      impostos: 8, ingredientes: 35, salariosProd: 10, proLabore: 7, bebidasRevenda: 5,
+      aluguel: 3, aguaLuz: 1.5, outrosInfra: 0.5, honorariosAgencia: 2, midiaSocial: 2,
+      marketing: 1, contabilidade: 2, limpezaEscritorio: 1.5, outrosAdmin: 2,
+      reformas: 3, emprestimos: 2, taxaMaquininha: 2.5, reservaCaixa: 2.5,
+    },
+    faturamentoBruto: Array(12).fill(0),
+  },
+  diagnosticoRespostas: [],
 });
 
 type Action =
