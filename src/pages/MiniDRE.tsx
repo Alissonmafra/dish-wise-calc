@@ -62,7 +62,7 @@ export default function MiniDRE() {
       totalCustoProd, pctCustoProd, aluguel, energiaAgua, honorariosMidia, taxaMaq,
       outros, totalDespRateadas, lucroBruto, margemLucro, fatMensal, lucroMensal,
     };
-  }, [precoVendaManual, produto, p, qtdMes]);
+  }, [precoVendaManual, produto, p, qtdMes, state.simplesNacional, mediaFaturamento]);
 
   const Row = ({ label, value, bold, pct }: { label: string; value: number; bold?: boolean; pct?: boolean }) => (
     <div className={`flex justify-between py-1 ${bold ? 'font-bold' : ''}`}>
