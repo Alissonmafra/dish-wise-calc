@@ -205,6 +205,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_PRODUTOS': return recompute({ ...state, produtos: action.payload });
     case 'SET_COMBOS': return recompute({ ...state, combos: action.payload });
     case 'SET_FECHAMENTOS': return { ...state, fechamentos: action.payload };
+    case 'SET_ITENS_CARDAPIO': return { ...state, itensCardapio: action.payload };
     case 'LOAD_STATE': return recompute(action.payload);
     default: return state;
   }

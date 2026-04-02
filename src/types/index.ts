@@ -104,4 +104,5 @@ export interface AppState {
   produtos: ProdutoCardapio[];
   combos: Combo[];
   fechamentos: FechamentoDia[];
+  itensCardapio: ItemCardapio[];
 }
