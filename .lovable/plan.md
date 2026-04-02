@@ -1,58 +1,102 @@
 
 
-# Regra Oficial do DNA da Empresa
+# DRE Anual — Entrada Manual com Somas Automáticas
 
 ## Resumo
 
-Reformular o cálculo do DNA da Empresa para seguir a fórmula oficial: `DNA = Custo Fixo (%) + Média Cartão (%) + Voucher (%) + Impostos (%) + Franquia (%)`. Remover `royalties` e `marketing` do DNA. Tornar `impostos` automático (alíquota efetiva do Simples). Adicionar campo `franquia` e toggle `isFranquia`. Redesenhar a aba DNA com mensagens educativas.
+Transformar o DRE de um modelo baseado em percentuais (onde o usuário digita % e o sistema calcula valores) para um modelo de **entrada manual de valores em R$** por mês, com **totais e indicadores calculados automaticamente**.
+
+## Como funciona hoje
+
+- O usuário digita o **Faturamento Bruto** por mês e **percentuais de referência** por linha
+- O sistema multiplica `faturamento × %` para gerar os valores mensais
+- Totais e indicadores são derivados dos percentuais
+
+## Como vai funcionar
+
+- O usuário digita os **valores em R$ diretamente** em cada linha e mês (Impostos, Ingredientes, Aluguel, etc.)
+- O sistema calcula automaticamente:
+  - **Subtotais** (Receita Líquida, CMV Total, Total Infraestrutura, etc.)
+  - **Resultado** (Total Despesas Operacionais, EBITDA, Lucro Líquido)
+  - **Indicadores** (CMV %, Margem EBITDA, Margem Líquida, Ponto de Equilíbrio)
+  - **Total Ano** (soma dos 12 meses)
+  - **% Médio** (linha / faturamento bruto)
+- A coluna **% Ref** é removida (não faz mais sentido)
 
 ## Alterações
 
-### 1. `src/types/index.ts` — Atualizar DNAEmpresa
+### 1. `src/types/index.ts` — Novo modelo de dados
 
-- Remover `royalties` e `marketing` da interface
-- Adicionar `franquia: number` e `isFranquia: boolean`
+Substituir `DREState` para armazenar valores manuais por linha/mês:
 
-### 2. `src/contexts/AppContext.tsx` — Novo cálculo do DNA
+```typescript
+export interface DREValoresMensais {
+  [lineKey: string]: number[]; // 12 valores por linha
+}
 
-No `recompute()`:
-- Calcular `impostos` automaticamente usando a alíquota efetiva do Simples Nacional (via `calcularImpostoSimples`)
-- Se `modoSimulacao`, usar `mediaFaturamento * 12` como RBT12; senão usar `rbt12Manual`
-- Fórmula do `dnaTotal`:
-  - `custoFixoPercent + mediaCartao + voucher + impostos + (isFranquia ? franquia : 0)`
-- Remover `royalties` e `marketing` do cálculo
+export interface DREState {
+  valores: DREValoresMensais; // valores manuais em R$
+}
+```
 
-No `initialState`: ajustar defaults (remover royalties/marketing, adicionar franquia: 0, isFranquia: false)
+Remover `DREPercentuais` (não mais necessário).
 
-### 3. `src/pages/Financeiro.tsx` — Redesenhar aba "DNA da Empresa"
+### 2. `src/pages/DREAnual.tsx` — Reescrever a tabela
 
-Layout da aba:
-- **Card educativo no topo**: "O DNA da empresa é o custo estrutural percentual mínimo que cada produto precisa suportar antes do lucro."
-- **Campos automáticos** (read-only com destaque):
-  - Custo Fixo (%) — da média 12 meses
-  - Média Cartão (%) — (débito + crédito) / 2
-  - Impostos (%) — alíquota efetiva do Simples
-- **Campos manuais**:
-  - Taxa Débito (%)
-  - Taxa Crédito (%)
-  - Voucher (%)
-- **Toggle**: "A empresa é franquia?" (sim/não)
-  - Se sim, mostrar campo Franquia (%)
-- **Resultado final** com destaque:
-  - DNA da Empresa (%) com breakdown visual
-  - Fórmula exibida
-- **Mensagem de apoio**: "Todo produto precisa conter no mínimo o DNA da empresa embutido no preço. Esse percentual cobre a estrutura do negócio antes mesmo do lucro."
+- Cada linha editável (não-seção, não-total) recebe inputs de R$ nos 12 meses
+- Linhas de total (`isTotal`) somam as linhas filhas automaticamente
+- Linhas de resultado (`isResult`) fazem as operações (Receita Líquida = Fat Bruto - Impostos, etc.)
+- Indicadores calculados a partir dos valores reais
+- Remover coluna "% Ref"
+- Total Ano = soma dos 12 meses
+- % Médio = Total da linha / Total Faturamento Bruto
 
-### 4. Demais páginas — Limpar referências a royalties/marketing
+### 3. `src/contexts/AppContext.tsx` — Ajustar state
 
-- `src/pages/Dashboard.tsx`, `src/pages/PainelMetas.tsx`, `src/pages/Precificacao.tsx`, `src/pages/MiniDRE.tsx` — ajustar onde `dnaTotal` ou campos removidos forem usados
+- Atualizar `initialState.dre` para o novo formato
+- Atualizar action `SET_DRE` 
+- Ajustar `loadState` para migrar dados antigos (percentuais → novo formato)
+- Remover referências a `DREPercentuais` no recompute
+
+### 4. Integração Simples Nacional
+
+- A linha de Impostos continua editável manualmente, mas o sistema pode **sugerir** o valor calculado pelo Simples Nacional como referência (tooltip ou badge), sem sobrescrever a entrada manual
+
+## Linhas editáveis (input R$)
+
+- Faturamento Bruto
+- Impostos
+- Ingredientes / Matérias-primas
+- Salários Produção
+- Pró-labore
+- Bebidas / Revenda
+- Aluguel / Condomínio
+- Água / Luz / Energia
+- Outros Infra
+- Honorários Agência
+- Mídia Social
+- Marketing
+- Contabilidade / Jurídico
+- Limpeza / Escritório
+- Outros Admin
+- Reformas / Expansão
+- Empréstimos
+- Taxa de Maquininha
+- Reserva de Caixa
+
+## Linhas automáticas (soma/cálculo)
+
+- Receita Líquida = Faturamento - Impostos
+- CMV Total = soma das 4 linhas de CMV
+- Total Infraestrutura, Comercial, Administrativas, Investimentos = soma das filhas
+- Total Despesas Operacionais = soma dos 4 subtotais
+- EBITDA = Receita Líquida - CMV - Despesas Operacionais
+- Lucro Líquido = EBITDA (simplificado, sem depreciação/amortização)
+- Indicadores = ratios sobre faturamento
 
 ## Arquivos afetados
 
-- `src/types/index.ts`
-- `src/contexts/AppContext.tsx`
-- `src/pages/Financeiro.tsx`
-- `src/pages/Dashboard.tsx` (se referencia royalties/marketing)
-- `src/pages/Precificacao.tsx` (se referencia royalties/marketing)
-- `src/pages/MiniDRE.tsx` (se referencia royalties/marketing)
+- `src/types/index.ts` — novo DREState, remover DREPercentuais
+- `src/pages/DREAnual.tsx` — reescrever para entrada manual
+- `src/contexts/AppContext.tsx` — novo formato de state, migração, persistência
 
