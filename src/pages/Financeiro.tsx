@@ -72,7 +72,7 @@ export default function Financeiro() {
     dispatch({ type: 'SET_FATURAMENTO', payload: state.faturamento.map(f => f.id === id ? { ...f, valor } : f) });
   };
 
-  const updateDNA = (field: string, value: number) => {
+  const updateDNA = (field: string, value: number | boolean) => {
     dispatch({ type: 'SET_DNA', payload: { [field]: value } });
   };
 
