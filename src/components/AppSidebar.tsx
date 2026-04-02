@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, DollarSign, Package, BookOpen, Calculator, Layers, Receipt,
+  LayoutDashboard, DollarSign, Package, BookOpen, Calculator, Layers, Receipt, ClipboardList,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -12,6 +12,7 @@ const items = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
   { title: 'Insumos', url: '/insumos', icon: Package },
+  { title: 'Itens do Cardápio', url: '/itens-cardapio', icon: ClipboardList },
   { title: 'Fichas Técnicas', url: '/fichas-tecnicas', icon: BookOpen },
   { title: 'Precificação', url: '/precificacao', icon: Calculator },
   { title: 'Combos', url: '/combos', icon: Layers },

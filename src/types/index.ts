@@ -90,6 +90,11 @@ export interface FechamentoDia {
   comprasCMV: number;
 }
 
+export interface ItemCardapio {
+  id: string;
+  nome: string;
+}
+
 export interface AppState {
   despesasFixas: DespesaFixa[];
   faturamento: FaturamentoMensal[];
@@ -99,4 +104,5 @@ export interface AppState {
   produtos: ProdutoCardapio[];
   combos: Combo[];
   fechamentos: FechamentoDia[];
+  itensCardapio: ItemCardapio[];
 }

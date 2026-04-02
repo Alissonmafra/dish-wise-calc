@@ -12,6 +12,7 @@ import FichasTecnicas from "./pages/FichasTecnicas";
 import Precificacao from "./pages/Precificacao";
 import Combos from "./pages/Combos";
 import Fechamento from "./pages/Fechamento";
+import ItensCardapio from "./pages/ItensCardapio";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/insumos" element={<Insumos />} />
+              <Route path="/itens-cardapio" element={<ItensCardapio />} />
               <Route path="/fichas-tecnicas" element={<FichasTecnicas />} />
               <Route path="/precificacao" element={<Precificacao />} />
               <Route path="/combos" element={<Combos />} />

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
-import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia } from '@/types';
+import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio } from '@/types';
 
 const STORAGE_KEY = 'precificacao-saas';
 
@@ -180,6 +180,7 @@ const initialState: AppState = recompute({
     },
   ],
   fechamentos: [],
+  itensCardapio: [],
 });
 
 type Action =
@@ -191,6 +192,7 @@ type Action =
   | { type: 'SET_PRODUTOS'; payload: ProdutoCardapio[] }
   | { type: 'SET_COMBOS'; payload: Combo[] }
   | { type: 'SET_FECHAMENTOS'; payload: FechamentoDia[] }
+  | { type: 'SET_ITENS_CARDAPIO'; payload: ItemCardapio[] }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -203,6 +205,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_PRODUTOS': return recompute({ ...state, produtos: action.payload });
     case 'SET_COMBOS': return recompute({ ...state, combos: action.payload });
     case 'SET_FECHAMENTOS': return { ...state, fechamentos: action.payload };
+    case 'SET_ITENS_CARDAPIO': return { ...state, itensCardapio: action.payload };
     case 'LOAD_STATE': return recompute(action.payload);
     default: return state;
   }
