@@ -216,6 +216,7 @@ const initialState: AppState = recompute({
     },
     faturamentoBruto: Array(12).fill(0),
   },
+  simplesNacional: { anexo: 'I', rbt12Manual: 0, modoSimulacao: true },
   diagnosticoRespostas: [],
 });
 
