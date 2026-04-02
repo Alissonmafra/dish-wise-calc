@@ -92,6 +92,7 @@ const dreLines: DRELine[] = [
   { label: 'CMV % do Faturamento', isIndicator: true, totalKey: 'cmvPct' },
   { label: 'Margem EBITDA', isIndicator: true, totalKey: 'margemEbitda' },
   { label: 'Margem Líquida', isIndicator: true, totalKey: 'margemLiq' },
+  { label: 'Composição de Margem (%)', isIndicator: true, totalKey: 'composicaoMargem' },
   { label: 'Ponto de Equilíbrio (R$)', isIndicator: true, totalKey: 'pontoEq' },
 ];
 
