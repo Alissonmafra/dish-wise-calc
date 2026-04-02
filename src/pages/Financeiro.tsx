@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
+import { calcularImpostoSimples, obterTabela } from '@/lib/simplesNacionalCalc';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Plus, Trash2, Info, AlertTriangle, Eye, EyeOff, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2, Info, AlertTriangle, Eye, EyeOff, ShieldCheck, ShieldAlert, Calculator } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LabelList } from 'recharts';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { DespesaFixa, Funcionario, Veiculo, CustosInvisiveis } from '@/types';
