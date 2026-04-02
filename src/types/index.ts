@@ -157,30 +157,12 @@ export interface CustosInvisiveis {
   };
 }
 
-export interface DREPercentuais {
-  impostos: number;
-  ingredientes: number;
-  salariosProd: number;
-  proLabore: number;
-  bebidasRevenda: number;
-  aluguel: number;
-  aguaLuz: number;
-  outrosInfra: number;
-  honorariosAgencia: number;
-  midiaSocial: number;
-  marketing: number;
-  contabilidade: number;
-  limpezaEscritorio: number;
-  outrosAdmin: number;
-  reformas: number;
-  emprestimos: number;
-  taxaMaquininha: number;
-  reservaCaixa: number;
+export interface DREValoresMensais {
+  [lineKey: string]: number[]; // 12 valores por linha
 }
 
 export interface DREState {
-  percentuais: DREPercentuais;
-  faturamentoBruto: number[]; // 12 meses
+  valores: DREValoresMensais;
 }
 
 export interface DiagnosticoResposta {
