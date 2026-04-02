@@ -188,6 +188,12 @@ export interface DiagnosticoResposta {
   resposta: string;
 }
 
+export interface SimplesNacional {
+  anexo: string; // 'I' | 'II' | 'III' | 'IV' | 'V' | ''
+  rbt12Manual: number;
+  modoSimulacao: boolean;
+}
+
 export interface AppState {
   despesasFixas: DespesaFixa[];
   faturamento: FaturamentoMensal[];
