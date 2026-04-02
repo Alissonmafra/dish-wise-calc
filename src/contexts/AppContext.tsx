@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
-import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado } from '@/types';
+import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta } from '@/types';
 
 const STORAGE_KEY = 'precificacao-saas';
 
@@ -182,6 +182,16 @@ const initialState: AppState = recompute({
   fechamentos: [],
   itensCardapio: [],
   itensManipulados: [],
+  dre: {
+    percentuais: {
+      impostos: 8, ingredientes: 35, salariosProd: 10, proLabore: 7, bebidasRevenda: 5,
+      aluguel: 3, aguaLuz: 1.5, outrosInfra: 0.5, honorariosAgencia: 2, midiaSocial: 2,
+      marketing: 1, contabilidade: 2, limpezaEscritorio: 1.5, outrosAdmin: 2,
+      reformas: 3, emprestimos: 2, taxaMaquininha: 2.5, reservaCaixa: 2.5,
+    },
+    faturamentoBruto: Array(12).fill(0),
+  },
+  diagnosticoRespostas: [],
 });
 
 type Action =
@@ -195,6 +205,8 @@ type Action =
   | { type: 'SET_FECHAMENTOS'; payload: FechamentoDia[] }
   | { type: 'SET_ITENS_CARDAPIO'; payload: ItemCardapio[] }
   | { type: 'SET_ITENS_MANIPULADOS'; payload: ItemManipulado[] }
+  | { type: 'SET_DRE'; payload: DREState }
+  | { type: 'SET_DIAGNOSTICO'; payload: DiagnosticoResposta[] }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -209,6 +221,8 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_FECHAMENTOS': return { ...state, fechamentos: action.payload };
     case 'SET_ITENS_CARDAPIO': return { ...state, itensCardapio: action.payload };
     case 'SET_ITENS_MANIPULADOS': return { ...state, itensManipulados: action.payload };
+    case 'SET_DRE': return { ...state, dre: action.payload };
+    case 'SET_DIAGNOSTICO': return { ...state, diagnosticoRespostas: action.payload };
     case 'LOAD_STATE': return recompute(action.payload);
     default: return state;
   }

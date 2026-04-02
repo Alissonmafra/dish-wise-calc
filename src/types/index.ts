@@ -103,6 +103,37 @@ export interface ItemManipulado {
   nome: string;
 }
 
+export interface DREPercentuais {
+  impostos: number;
+  ingredientes: number;
+  salariosProd: number;
+  proLabore: number;
+  bebidasRevenda: number;
+  aluguel: number;
+  aguaLuz: number;
+  outrosInfra: number;
+  honorariosAgencia: number;
+  midiaSocial: number;
+  marketing: number;
+  contabilidade: number;
+  limpezaEscritorio: number;
+  outrosAdmin: number;
+  reformas: number;
+  emprestimos: number;
+  taxaMaquininha: number;
+  reservaCaixa: number;
+}
+
+export interface DREState {
+  percentuais: DREPercentuais;
+  faturamentoBruto: number[]; // 12 meses
+}
+
+export interface DiagnosticoResposta {
+  id: string;
+  resposta: string;
+}
+
 export interface AppState {
   despesasFixas: DespesaFixa[];
   faturamento: FaturamentoMensal[];
@@ -114,4 +145,6 @@ export interface AppState {
   fechamentos: FechamentoDia[];
   itensCardapio: ItemCardapio[];
   itensManipulados: ItemManipulado[];
+  dre: DREState;
+  diagnosticoRespostas: DiagnosticoResposta[];
 }

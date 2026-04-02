@@ -17,6 +17,10 @@ import Fechamento from "./pages/Fechamento";
 import ItensCardapio from "./pages/ItensCardapio";
 import ItensManipulados from "./pages/ItensManipulados";
 import LucroAtual from "./pages/LucroAtual";
+import DREAnual from "./pages/DREAnual";
+import PainelMetas from "./pages/PainelMetas";
+import MiniDRE from "./pages/MiniDRE";
+import Diagnostico from "./pages/Diagnostico";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +46,10 @@ const App = () => (
               <Route path="/combos" element={<Combos />} />
               <Route path="/lucro-atual" element={<LucroAtual />} />
               <Route path="/fechamento" element={<Fechamento />} />
+              <Route path="/dre" element={<DREAnual />} />
+              <Route path="/painel-metas" element={<PainelMetas />} />
+              <Route path="/mini-dre" element={<MiniDRE />} />
+              <Route path="/diagnostico" element={<Diagnostico />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AppLayout>
