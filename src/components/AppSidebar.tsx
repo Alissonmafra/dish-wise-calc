@@ -20,6 +20,10 @@ const items = [
   { title: 'Preço de Venda (PV)', url: '/precificacao', icon: Calculator },
   { title: 'Combos', url: '/combos', icon: Layers },
   { title: 'Fechamento', url: '/fechamento', icon: Receipt },
+  { title: 'DRE Anual', url: '/dre', icon: BarChart3 },
+  { title: 'Painel de Metas', url: '/painel-metas', icon: Target },
+  { title: 'Mini-DRE Produto', url: '/mini-dre', icon: PieChart },
+  { title: 'Diagnóstico', url: '/diagnostico', icon: Stethoscope },
 ];
 
 export function AppSidebar() {
