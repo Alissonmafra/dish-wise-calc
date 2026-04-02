@@ -180,6 +180,7 @@ const initialState: AppState = recompute({
     },
   ],
   fechamentos: [],
+  itensCardapio: [],
 });
 
 type Action =
