@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
 import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis, SimplesNacional } from '@/types';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
+import { calcularImpostoSimples } from '@/lib/simplesNacionalCalc';
 
 const STORAGE_KEY = 'precificacao-saas';
 
@@ -90,13 +91,24 @@ function recompute(state: AppState): AppState {
 
   const mediaCartao = (state.dnaEmpresa.taxaDebito + state.dnaEmpresa.taxaCredito) / 2;
 
+  // Calculate impostos from Simples Nacional effective rate
+  const sn = state.simplesNacional;
+  let impostos = state.dnaEmpresa.impostos;
+  if (sn.anexo) {
+    const fatValues = state.faturamento.filter(f => f.valor > 0);
+    const mediaFat = fatValues.length > 0 ? fatValues.reduce((s, f) => s + f.valor, 0) / fatValues.length : 0;
+    const rbt12 = sn.modoSimulacao ? mediaFat * 12 : sn.rbt12Manual;
+    const res = calcularImpostoSimples(mediaFat, rbt12, sn.anexo);
+    if (res.aliquotaEfetiva > 0) impostos = res.aliquotaEfetiva;
+  }
+
   return {
     ...state,
     insumos,
     receitas,
     produtos,
     combos,
-    dnaEmpresa: { ...state.dnaEmpresa, custoFixoPercent, composicaoMargem, mediaCartao },
+    dnaEmpresa: { ...state.dnaEmpresa, custoFixoPercent, composicaoMargem, mediaCartao, impostos },
   };
 }
 
@@ -128,10 +140,10 @@ const initialState: AppState = recompute({
     taxaDebito: 2,
     taxaCredito: 5,
     mediaCartao: 3.5,
-    impostos: 7,
-    royalties: 0,
-    marketing: 2,
+    impostos: 0,
     voucher: 3,
+    franquia: 0,
+    isFranquia: false,
   },
   insumos: [
     { id: 'ins1', nome: 'Carne Bovina (Blend)', quantidadeComprada: 1000, unidade: 'g', precoPago: 35, percentualPerda: 10, quantidadeReal: 0, precoReal: 0, custoPorUnidade: 0 },
@@ -301,7 +313,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const mediaDespesas = state.despesasFixas.reduce((s, d) => s + d.valor, 0) / mesesDespesas;
 
   const dna = state.dnaEmpresa;
-  const dnaTotal = dna.custoFixoPercent + dna.mediaCartao + dna.impostos + dna.royalties + dna.marketing + dna.voucher;
+  const dnaTotal = dna.custoFixoPercent + dna.mediaCartao + dna.impostos + dna.voucher + (dna.isFranquia ? dna.franquia : 0);
 
   const value = useMemo(() => ({ state, dispatch, dnaTotal, mediaDespesas, mediaFaturamento }), [state, dnaTotal, mediaDespesas, mediaFaturamento]);
 

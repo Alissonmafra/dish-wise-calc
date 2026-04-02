@@ -12,13 +12,10 @@ export default function Dashboard() {
   const dna = state.dnaEmpresa;
   const dnaPieData = [
     { name: 'Custo Fixo', value: dna.custoFixoPercent },
-    { name: 'Débito', value: dna.taxaDebito },
-    { name: 'Crédito', value: dna.taxaCredito },
-    { name: 'Impostos', value: dna.impostos },
-    { name: 'Marketing', value: dna.marketing },
-    { name: 'Voucher', value: dna.voucher },
     { name: 'Média Cartão', value: dna.mediaCartao },
-    { name: 'Royalties', value: dna.royalties },
+    { name: 'Impostos', value: dna.impostos },
+    { name: 'Voucher', value: dna.voucher },
+    ...(dna.isFranquia && dna.franquia > 0 ? [{ name: 'Franquia', value: dna.franquia }] : []),
   ].filter(d => d.value > 0);
 
   const produtoRent = state.produtos.map(p => {
