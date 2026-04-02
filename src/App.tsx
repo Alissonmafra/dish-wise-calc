@@ -16,6 +16,7 @@ import Combos from "./pages/Combos";
 import Fechamento from "./pages/Fechamento";
 import ItensCardapio from "./pages/ItensCardapio";
 import ItensManipulados from "./pages/ItensManipulados";
+import LucroAtual from "./pages/LucroAtual";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
