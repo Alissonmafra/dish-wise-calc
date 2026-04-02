@@ -234,6 +234,7 @@ type Action =
   | { type: 'SET_CUSTOS_INVISIVEIS'; payload: CustosInvisiveis }
   | { type: 'SET_DRE'; payload: DREState }
   | { type: 'SET_DIAGNOSTICO'; payload: DiagnosticoResposta[] }
+  | { type: 'SET_SIMPLES_NACIONAL'; payload: SimplesNacional }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
