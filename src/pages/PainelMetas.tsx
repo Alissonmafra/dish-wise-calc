@@ -17,21 +17,28 @@ interface Indicator {
 export default function PainelMetas() {
   const { state } = useApp();
   const { dre } = state;
-  const p = dre.percentuais;
-  const fatArr = dre.faturamentoBruto;
+  const v = dre.valores;
+
+  const getVal = (key: string, i: number) => v[key]?.[i] || 0;
 
   const monthlyData = useMemo(() => {
-    return fatArr.map(fat => {
-      const cmv = fat * (p.ingredientes + p.salariosProd + p.proLabore + p.bebidasRevenda) / 100;
-      const recLiq = fat - fat * p.impostos / 100;
-      const infra = fat * (p.aluguel + p.aguaLuz + p.outrosInfra) / 100;
-      const com = fat * (p.honorariosAgencia + p.midiaSocial + p.marketing) / 100;
-      const adm = fat * (p.contabilidade + p.limpezaEscritorio + p.outrosAdmin) / 100;
-      const inv = fat * (p.reformas + p.emprestimos + p.taxaMaquininha + p.reservaCaixa) / 100;
-      const ebitda = recLiq - cmv - infra - com - adm - inv;
+    return Array.from({ length: 12 }, (_, i) => {
+      const fat = getVal('fatBruto', i);
+      const imp = getVal('impostos', i);
+      const cmvKeys = ['ingredientes','salariosProd','proLabore','bebidasRevenda'];
+      const cmv = cmvKeys.reduce((s, k) => s + getVal(k, i), 0);
+      const infraKeys = ['aluguel','aguaLuz','outrosInfra'];
+      const infra = infraKeys.reduce((s, k) => s + getVal(k, i), 0);
+      const comKeys = ['honorariosAgencia','midiaSocial','marketing'];
+      const com = comKeys.reduce((s, k) => s + getVal(k, i), 0);
+      const admKeys = ['contabilidade','limpezaEscritorio','outrosAdmin'];
+      const adm = admKeys.reduce((s, k) => s + getVal(k, i), 0);
+      const invKeys = ['reformas','emprestimos','taxaMaquininha','reservaCaixa'];
+      const inv = invKeys.reduce((s, k) => s + getVal(k, i), 0);
+      const ebitda = (fat - imp) - cmv - infra - com - adm - inv;
       return { fat, cmv, ebitda, infra, com };
     });
-  }, [fatArr, p]);
+  }, [v]);
 
   const totals = useMemo(() => {
     const t = { fat: 0, cmv: 0, ebitda: 0, infra: 0, com: 0 };

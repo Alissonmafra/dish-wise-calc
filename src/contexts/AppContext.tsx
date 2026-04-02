@@ -220,13 +220,12 @@ const initialState: AppState = recompute({
   itensManipulados: [],
   custosInvisiveis: initialCustosInvisiveis,
   dre: {
-    percentuais: {
-      impostos: 8, ingredientes: 35, salariosProd: 10, proLabore: 7, bebidasRevenda: 5,
-      aluguel: 3, aguaLuz: 1.5, outrosInfra: 0.5, honorariosAgencia: 2, midiaSocial: 2,
-      marketing: 1, contabilidade: 2, limpezaEscritorio: 1.5, outrosAdmin: 2,
-      reformas: 3, emprestimos: 2, taxaMaquininha: 2.5, reservaCaixa: 2.5,
-    },
-    faturamentoBruto: Array(12).fill(0),
+    valores: Object.fromEntries(
+      ['fatBruto','impostos','ingredientes','salariosProd','proLabore','bebidasRevenda',
+       'aluguel','aguaLuz','outrosInfra','honorariosAgencia','midiaSocial','marketing',
+       'contabilidade','limpezaEscritorio','outrosAdmin','reformas','emprestimos','taxaMaquininha','reservaCaixa',
+      ].map(k => [k, Array(12).fill(0)])
+    ),
   },
   simplesNacional: { anexo: 'I', rbt12Manual: 0, modoSimulacao: true },
   diagnosticoRespostas: [],
@@ -286,7 +285,7 @@ function loadState(): AppState {
         custosInvisiveis: parsed.custosInvisiveis
           ? { ...initialCustosInvisiveis, ...parsed.custosInvisiveis, valeTransporte: { ...initialCustosInvisiveis.valeTransporte, ...(parsed.custosInvisiveis?.valeTransporte || {}) }, brindes: { ...initialCustosInvisiveis.brindes, ...(parsed.custosInvisiveis?.brindes || {}) }, alimentacao: { ...initialCustosInvisiveis.alimentacao, ...(parsed.custosInvisiveis?.alimentacao || {}) } }
           : initialCustosInvisiveis,
-        dre: parsed.dre ? { ...initialState.dre, ...parsed.dre, percentuais: { ...initialState.dre.percentuais, ...(parsed.dre?.percentuais || {}) } } : initialState.dre,
+        dre: parsed.dre?.valores ? parsed.dre : initialState.dre,
         simplesNacional: parsed.simplesNacional ? { ...initialState.simplesNacional, ...parsed.simplesNacional } : initialState.simplesNacional,
         diagnosticoRespostas: parsed.diagnosticoRespostas || [],
       });
