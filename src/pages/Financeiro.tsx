@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,16 +8,44 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import type { DespesaFixa, FaturamentoMensal } from '@/types';
+import type { DespesaFixa } from '@/types';
+
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 export default function Financeiro() {
-  const { state, dispatch, dnaTotal, mediaDespesas, mediaFaturamento } = useApp();
+  const { state, dispatch, dnaTotal } = useApp();
   const [showDespesaModal, setShowDespesaModal] = useState(false);
   const [newDespesa, setNewDespesa] = useState({ mes: '', descricao: '', valor: '' });
 
+  // Monthly summary
+  const resumoMensal = useMemo(() => {
+    const despPorMes: Record<string, number> = {};
+    for (const d of state.despesasFixas) {
+      despPorMes[d.mes] = (despPorMes[d.mes] || 0) + d.valor;
+    }
+    const mesesComDespesa = Object.keys(despPorMes);
+    const rows = mesesComDespesa.map(mes => {
+      const total = despPorMes[mes];
+      const fat = state.faturamento.find(f => f.mes === mes);
+      const fatVal = fat?.valor || 0;
+      const percent = fatVal > 0 ? (total / fatVal) * 100 : null;
+      return { mes, total, percent };
+    });
+
+    const mesesComPercent = rows.filter(r => r.percent !== null);
+    const mediaR = rows.length > 0 ? rows.reduce((s, r) => s + r.total, 0) / rows.length : 0;
+    const mediaPercent = mesesComPercent.length > 0
+      ? mesesComPercent.reduce((s, r) => s + r.percent!, 0) / mesesComPercent.length
+      : null;
+
+    return { rows, mediaR, mediaPercent };
+  }, [state.despesasFixas, state.faturamento]);
+
   const addDespesa = () => {
+    if (!newDespesa.mes) return;
     const d: DespesaFixa = { id: crypto.randomUUID(), mes: newDespesa.mes, descricao: newDespesa.descricao, valor: parseFloat(newDespesa.valor) || 0 };
     dispatch({ type: 'SET_DESPESAS', payload: [...state.despesasFixas, d] });
     setShowDespesaModal(false);
@@ -53,11 +81,23 @@ export default function Financeiro() {
         <TabsContent value="despesas" className="space-y-4">
           <div className="flex justify-between items-center">
             <div className="flex gap-4">
-              <Card className="px-4 py-2"><p className="text-xs text-muted-foreground">Média Mensal</p><p className="text-lg font-bold">{formatBRL(mediaDespesas)}</p></Card>
+              <Card className="px-4 py-2">
+                <p className="text-xs text-muted-foreground">Média Custo Fixo (R$)</p>
+                <p className="text-lg font-bold">{formatBRL(resumoMensal.mediaR)}</p>
+              </Card>
+              <Card className="px-4 py-2">
+                <p className="text-xs text-muted-foreground">Média Custo Fixo (%)</p>
+                <p className="text-lg font-bold">
+                  {resumoMensal.mediaPercent !== null ? formatPercent(resumoMensal.mediaPercent) : '-'}
+                </p>
+              </Card>
             </div>
             <Button onClick={() => setShowDespesaModal(true)}><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
           </div>
+
+          {/* Lançamentos */}
           <Card>
+            <CardHeader><CardTitle className="text-base">Lançamentos</CardTitle></CardHeader>
             <Table>
               <TableHeader>
                 <TableRow><TableHead>Mês</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="w-12" /></TableRow>
@@ -75,11 +115,54 @@ export default function Financeiro() {
             </Table>
           </Card>
 
+          {/* Resumo Mensal */}
+          <Card>
+            <CardHeader><CardTitle className="text-base">Resumo Mensal</CardTitle></CardHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mês</TableHead>
+                  <TableHead className="text-right">Total Custo Fixo (R$)</TableHead>
+                  <TableHead className="text-right">Custo Fixo (%)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {resumoMensal.rows.map(r => (
+                  <TableRow key={r.mes}>
+                    <TableCell>{r.mes}</TableCell>
+                    <TableCell className="text-right">{formatBRL(r.total)}</TableCell>
+                    <TableCell className="text-right">
+                      {r.percent !== null ? formatPercent(r.percent) : <span className="text-muted-foreground italic">aguardando faturamento</span>}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {resumoMensal.rows.length > 0 && (
+                  <TableRow className="font-bold border-t-2">
+                    <TableCell>Média</TableCell>
+                    <TableCell className="text-right">{formatBRL(resumoMensal.mediaR)}</TableCell>
+                    <TableCell className="text-right">
+                      {resumoMensal.mediaPercent !== null ? formatPercent(resumoMensal.mediaPercent) : '-'}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+
+          {/* Modal */}
           <Dialog open={showDespesaModal} onOpenChange={setShowDespesaModal}>
             <DialogContent>
               <DialogHeader><DialogTitle>Nova Despesa Fixa</DialogTitle></DialogHeader>
               <div className="space-y-4">
-                <div><Label>Mês</Label><Input value={newDespesa.mes} onChange={e => setNewDespesa(p => ({ ...p, mes: e.target.value }))} placeholder="Janeiro" /></div>
+                <div>
+                  <Label>Mês</Label>
+                  <Select value={newDespesa.mes} onValueChange={v => setNewDespesa(p => ({ ...p, mes: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o mês" /></SelectTrigger>
+                    <SelectContent>
+                      {MESES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div><Label>Descrição</Label><Input value={newDespesa.descricao} onChange={e => setNewDespesa(p => ({ ...p, descricao: e.target.value }))} placeholder="Aluguel" /></div>
                 <div><Label>Valor (R$)</Label><Input type="number" value={newDespesa.valor} onChange={e => setNewDespesa(p => ({ ...p, valor: e.target.value }))} /></div>
               </div>
@@ -89,7 +172,10 @@ export default function Financeiro() {
         </TabsContent>
 
         <TabsContent value="faturamento" className="space-y-4">
-          <Card className="px-4 py-2 w-fit"><p className="text-xs text-muted-foreground">Média de Faturamento</p><p className="text-lg font-bold">{formatBRL(mediaFaturamento)}</p></Card>
+          <Card className="px-4 py-2 w-fit">
+            <p className="text-xs text-muted-foreground">Média de Faturamento</p>
+            <p className="text-lg font-bold">{formatBRL(state.faturamento.filter(f => f.valor > 0).length > 0 ? state.faturamento.filter(f => f.valor > 0).reduce((s, f) => s + f.valor, 0) / state.faturamento.filter(f => f.valor > 0).length : 0)}</p>
+          </Card>
           <Card>
             <Table>
               <TableHeader><TableRow><TableHead>Mês</TableHead><TableHead className="text-right">Faturamento</TableHead></TableRow></TableHeader>
@@ -123,7 +209,7 @@ export default function Financeiro() {
                 <div className="p-4 bg-muted rounded-lg">
                   <Label className="text-muted-foreground">Custo Fixo % (automático)</Label>
                   <p className="text-2xl font-bold">{formatPercent(dna.custoFixoPercent)}</p>
-                  <p className="text-xs text-muted-foreground">Média Despesas / Média Faturamento</p>
+                  <p className="text-xs text-muted-foreground">Média dos percentuais mensais (Despesas / Faturamento)</p>
                 </div>
                 {([
                   ['taxaDebito', 'Taxa Débito (%)'],
