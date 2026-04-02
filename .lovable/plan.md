@@ -1,46 +1,54 @@
 
 
-# Refatorar DNA da Empresa
+# Módulo: Itens do Cardápio
 
-## Problemas atuais
-1. `mediaCartao` é um campo manual — deveria ser auto-calculado: `(taxaDebito + taxaCredito) / 2`
-2. `dnaTotal` soma taxaDebito + taxaCredito + mediaCartao (tripla contagem) — deveria usar apenas `mediaCartao`
-3. A UI mostra `mediaCartao` como campo editável — deveria ser read-only
-4. Falta o label "Percentual Total Taxas (%)" e bloco IMPORTANTE
+## Resumo
+
+Criar uma nova tela "Itens do Cardápio" para cadastrar todos os produtos vendáveis do restaurante — uma lista mestra simples (número sequencial + nome). Será usada como referência por outros módulos futuramente.
 
 ## Alterações
 
-### 1. `src/contexts/AppContext.tsx`
+### 1. `src/types/index.ts` — Novo tipo + AppState
 
-**recompute()** — após calcular `custoFixoPercent`, também calcular `mediaCartao`:
+Adicionar:
 ```typescript
-const mediaCartao = (state.dnaEmpresa.taxaDebito + state.dnaEmpresa.taxaCredito) / 2;
-dnaEmpresa: { ...state.dnaEmpresa, custoFixoPercent, mediaCartao }
+export interface ItemCardapio {
+  id: string;
+  nome: string;
+}
 ```
 
-**dnaTotal** (linha 240) — corrigir para não duplicar taxas de cartão:
-```typescript
-const dnaTotal = dna.custoFixoPercent + dna.mediaCartao + dna.impostos + dna.royalties + dna.marketing + dna.voucher;
-```
+Adicionar `itensCardapio: ItemCardapio[]` ao `AppState`.
 
-### 2. `src/pages/Financeiro.tsx` — Aba DNA
+### 2. `src/contexts/AppContext.tsx`
 
-Reorganizar a UI para mostrar:
+- Adicionar `itensCardapio: []` ao `initialState`
+- Adicionar action `SET_ITENS_CARDAPIO` ao reducer
+- Incluir no `LOAD_STATE` e persistência
 
-- **Custo Fixo (%)** — bloco read-only (já existe)
-- **Taxa Máquina de Cartão Débito (%)** — input manual
-- **Taxa Máquina de Cartão Crédito (%)** — input manual
-- **Média Taxa de Cartão Débito e Crédito (%)** — bloco read-only, calculado automaticamente
-- **Imposto (%)** — input manual
-- **Royalties (%)** — input manual
-- **Marketing (%)** — input manual
-- **Voucher (%)** — input manual
-- **Percentual Total Taxas (%)** — bloco destacado read-only (substituindo "DNA Total")
-- Bloco IMPORTANTE amarelo: "Selecione nesta opção a Média do % de Custo Fixo ou o mês que deverá ser considerado..."
+### 3. `src/pages/ItensCardapio.tsx` — Nova página
 
-### 3. `src/types/index.ts` — sem alterações (interface já tem todos os campos)
+Conteúdo:
+- **Card "Total Produtos Cadastrados"** — contagem automática
+- **Barra de pesquisa** com filtro por nome
+- **Botão "Adicionar Item"** — abre dialog com campo "Nome do Produto"
+  - Validação: alerta se nome duplicado (case-insensitive)
+- **Tabela**: colunas "Item" (número sequencial 1, 2, 3...) e "Nome do Produto"
+- **Ações por linha**: editar (dialog) e excluir (confirmação)
+- Linhas com zebra-striping (alternância de cor) conforme a imagem de referência
+
+### 4. `src/App.tsx` — Nova rota
+
+Adicionar `/itens-cardapio` → `<ItensCardapio />`
+
+### 5. `src/components/AppSidebar.tsx` — Novo item no menu
+
+Adicionar "Itens do Cardápio" com ícone `ClipboardList`, posicionado antes de "Fichas Técnicas".
 
 ## Arquivos afetados
-- `src/contexts/AppContext.tsx` — mediaCartao auto-calculado + dnaTotal corrigido
-- `src/pages/Financeiro.tsx` — aba DNA reorganizada
+- `src/types/index.ts`
+- `src/contexts/AppContext.tsx`
+- `src/pages/ItensCardapio.tsx` (novo)
+- `src/App.tsx`
+- `src/components/AppSidebar.tsx`
 
