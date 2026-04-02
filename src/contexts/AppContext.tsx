@@ -91,13 +91,24 @@ function recompute(state: AppState): AppState {
 
   const mediaCartao = (state.dnaEmpresa.taxaDebito + state.dnaEmpresa.taxaCredito) / 2;
 
+  // Calculate impostos from Simples Nacional effective rate
+  const sn = state.simplesNacional;
+  let impostos = state.dnaEmpresa.impostos;
+  if (sn.anexo) {
+    const fatValues = state.faturamento.filter(f => f.valor > 0);
+    const mediaFat = fatValues.length > 0 ? fatValues.reduce((s, f) => s + f.valor, 0) / fatValues.length : 0;
+    const rbt12 = sn.modoSimulacao ? mediaFat * 12 : sn.rbt12Manual;
+    const res = calcularImpostoSimples(mediaFat, rbt12, sn.anexo);
+    if (res.aliquotaEfetiva > 0) impostos = res.aliquotaEfetiva;
+  }
+
   return {
     ...state,
     insumos,
     receitas,
     produtos,
     combos,
-    dnaEmpresa: { ...state.dnaEmpresa, custoFixoPercent, composicaoMargem, mediaCartao },
+    dnaEmpresa: { ...state.dnaEmpresa, custoFixoPercent, composicaoMargem, mediaCartao, impostos },
   };
 }
 
