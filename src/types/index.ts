@@ -83,8 +83,11 @@ export interface FechamentoDia {
   data: string;
   dinheiroPix: number;
   debito: number;
+  taxaDebito: number;
   credito: number;
+  taxaCredito: number;
   ifood: number;
+  taxaIfood: number;
   motoboyDiaria: number;
   motoboyEntregas: number;
   comprasCMV: number;
