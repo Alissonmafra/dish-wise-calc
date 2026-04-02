@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Trash2, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
-import { formatCurrency, formatPercent } from '@/lib/formatters';
+import { formatBRL, formatPercent } from '@/lib/formatters';
 
 interface LinhaLucro {
   id: string;
