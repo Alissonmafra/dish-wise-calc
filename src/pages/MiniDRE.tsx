@@ -11,9 +11,8 @@ const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2,
 const fmtPct = (v: number) => (v * 100).toFixed(1) + '%';
 
 export default function MiniDRE() {
-  const { state, mediaFaturamento } = useApp();
-  const { produtos, dre } = state;
-  const p = dre.percentuais;
+  const { state, mediaFaturamento, dnaTotal } = useApp();
+  const { produtos } = state;
 
   const [selectedProduto, setSelectedProduto] = useState('');
   const [precoVendaManual, setPrecoVendaManual] = useState<number>(0);
@@ -22,33 +21,37 @@ export default function MiniDRE() {
 
   const produto = produtos.find(pr => pr.id === selectedProduto);
 
-  const calc = useMemo(() => {
-    const pv = precoVendaManual;
-    if (!pv || pv <= 0) return null;
-
-    // Use Simples Nacional effective rate when configured
+  // Get effective tax rate from Simples Nacional
+  const taxaImpostos = useMemo(() => {
     const sn = state.simplesNacional;
-    let taxaImpostos = p.impostos;
     if (sn.anexo) {
       const rbt12 = sn.modoSimulacao ? mediaFaturamento * 12 : sn.rbt12Manual;
       const res = calcularImpostoSimples(mediaFaturamento, rbt12, sn.anexo);
-      if (res.aliquotaEfetiva > 0) taxaImpostos = res.aliquotaEfetiva;
+      if (res.aliquotaEfetiva > 0) return res.aliquotaEfetiva;
     }
+    return state.dnaEmpresa.impostos;
+  }, [state.simplesNacional, mediaFaturamento, state.dnaEmpresa.impostos]);
+
+  const calc = useMemo(() => {
+    const pv = precoVendaManual;
+    if (!pv || pv <= 0) return null;
 
     const impostos = pv * taxaImpostos / 100;
     const receitaLiquida = pv - impostos;
     const ingredientes = produto ? produto.cmv : 0;
     const embalagem = produto ? produto.custoEmbalagem : 0;
-    const custoFuncionario = pv * p.salariosProd / 100;
-    const proLabore = pv * p.proLabore / 100;
+    // Use DNA percentages for rateio estimates
+    const dna = state.dnaEmpresa;
+    const custoFuncionario = pv * 0.10; // 10% estimate
+    const proLabore = pv * 0.07; // 7% estimate
     const totalCustoProd = ingredientes + embalagem + custoFuncionario + proLabore;
     const pctCustoProd = totalCustoProd / pv;
 
-    const aluguel = pv * p.aluguel / 100;
-    const energiaAgua = pv * p.aguaLuz / 100;
-    const honorariosMidia = pv * (p.honorariosAgencia + p.midiaSocial) / 100;
-    const taxaMaq = pv * p.taxaMaquininha / 100;
-    const outros = pv * p.outrosAdmin / 100;
+    const aluguel = pv * 0.03;
+    const energiaAgua = pv * 0.015;
+    const honorariosMidia = pv * 0.04;
+    const taxaMaq = pv * dna.mediaCartao / 100;
+    const outros = pv * 0.02;
     const totalDespRateadas = aluguel + energiaAgua + honorariosMidia + taxaMaq + outros;
 
     const lucroBruto = receitaLiquida - totalCustoProd - totalDespRateadas;
@@ -62,7 +65,7 @@ export default function MiniDRE() {
       totalCustoProd, pctCustoProd, aluguel, energiaAgua, honorariosMidia, taxaMaq,
       outros, totalDespRateadas, lucroBruto, margemLucro, fatMensal, lucroMensal,
     };
-  }, [precoVendaManual, produto, p, qtdMes, state.simplesNacional, mediaFaturamento]);
+  }, [precoVendaManual, produto, taxaImpostos, qtdMes, state.dnaEmpresa]);
 
   const Row = ({ label, value, bold, pct }: { label: string; value: number; bold?: boolean; pct?: boolean }) => (
     <div className={`flex justify-between py-1 ${bold ? 'font-bold' : ''}`}>

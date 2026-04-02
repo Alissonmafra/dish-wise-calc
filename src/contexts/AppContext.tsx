@@ -285,7 +285,7 @@ function loadState(): AppState {
         custosInvisiveis: parsed.custosInvisiveis
           ? { ...initialCustosInvisiveis, ...parsed.custosInvisiveis, valeTransporte: { ...initialCustosInvisiveis.valeTransporte, ...(parsed.custosInvisiveis?.valeTransporte || {}) }, brindes: { ...initialCustosInvisiveis.brindes, ...(parsed.custosInvisiveis?.brindes || {}) }, alimentacao: { ...initialCustosInvisiveis.alimentacao, ...(parsed.custosInvisiveis?.alimentacao || {}) } }
           : initialCustosInvisiveis,
-        dre: parsed.dre ? { ...initialState.dre, ...parsed.dre, percentuais: { ...initialState.dre.percentuais, ...(parsed.dre?.percentuais || {}) } } : initialState.dre,
+        dre: parsed.dre?.valores ? parsed.dre : initialState.dre,
         simplesNacional: parsed.simplesNacional ? { ...initialState.simplesNacional, ...parsed.simplesNacional } : initialState.simplesNacional,
         diagnosticoRespostas: parsed.diagnosticoRespostas || [],
       });
