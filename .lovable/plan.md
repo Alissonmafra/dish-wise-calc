@@ -1,139 +1,60 @@
 
 
-# Custos Fixos Invisíveis — Submódulo dentro de Despesas Fixas
+# Regra de Custo Fixo (%) e Composição de Margem
 
 ## Resumo
 
-Adicionar ao state global uma nova estrutura `custosInvisiveis` com 7 categorias (IPTU, Salários/Provisionamentos, Vale Transporte, Depreciação, Brindes, Veículos, Alimentação), cada uma com campos manuais e cálculos automáticos. O total dos custos invisíveis será somado às despesas fixas visíveis para compor o custo fixo real do mês, impactando o DNA da Empresa e toda a cadeia de precificação.
+Adicionar ao DNAEmpresa um campo `composicaoMargem` calculado automaticamente. Quando o `custoFixoPercent` ultrapassa 33%, o excedente é exibido como "Composição de Margem". Exibir essa regra no Dashboard, Financeiro, Painel de Metas e DNA da Empresa com alertas visuais.
 
 ## Alterações
 
-### 1. `src/types/index.ts` — Novos tipos
+### 1. `src/types/index.ts` — Expandir DNAEmpresa
 
-```typescript
-export interface Funcionario {
-  id: string;
-  nome: string;
-  cargo: string;
-  salarioBase: number;
-}
+Adicionar campo computed `composicaoMargem: number` ao `DNAEmpresa`.
 
-export interface Veiculo {
-  id: string;
-  nome: string;
-  combustivel: number;
-  estacionamento: number;
-  pedagio: number;
-  lavaJato: number;
-  valorFipe: number;
-  valorTotalFinanciamento: number;
-  qtdParcelas: number;
-  valorPneus: number;
-  vidaUtilPneusMeses: number;
-  manutencaoAnual: number;
-  seguroAnual: number;
-  franquiaSeguro: number;
-  frequenciaFranquiaMeses: number;
-  ipvaAnual: number;
-  valorCompra: number;
-  valorVendaFutura: number;
-  periodoUsoMeses: number;
-}
+### 2. `src/contexts/AppContext.tsx` — Cálculo automático no `recompute()`
 
-export interface CustosInvisiveis {
-  iptuAnual: number;
-  funcionarios: Funcionario[];
-  valeTransporte: {
-    valorPassagem: number;
-    passagensPorDia: number;
-    diasTrabalhados: number;
-    qtdFuncionarios: number;
-  };
-  depreciacaoInventario: number;
-  brindes: {
-    qtdPorSemana: number;
-    cmvUnitario: number;
-    entregaUnitaria: number;
-    fatorMensal: number; // default 4
-  };
-  veiculos: Veiculo[];
-  alimentacao: {
-    qtdFuncionarios: number;
-    custoDiario: number;
-    diasTrabalhados: number;
-  };
-}
-```
-
-Adicionar `custosInvisiveis: CustosInvisiveis` ao `AppState`.
-
-### 2. `src/contexts/AppContext.tsx` — State + Cálculo
-
-- Adicionar `custosInvisiveis` ao `initialState` com valores zerados
-- Adicionar action `SET_CUSTOS_INVISIVEIS`
-- Na função `recompute()`, calcular `totalCustosInvisiveis` e **somá-lo** às despesas fixas visíveis ao calcular `custoFixoPercent`
-
-**Lógica de cálculo** (dentro de `recompute` ou helper):
+Após calcular `custoFixoPercent`, calcular:
 
 ```text
-IPTU mensal = iptuAnual / 12
-
-Por funcionário:
-  fgts = salario × 8%
-  prov13 = salario / 12
-  provFerias = (salario + salario/3) / 12
-  fgts13Ferias = (prov13 + provFerias) × 8%
-  mediaSalarial = soma salários / qtd funcionários
-  avisoMensal = mediaSalarial / 12
-  avisoComplementar = (mediaSalarial + mediaSalarial/3 + mediaSalarial) × 8% / 12
-  multaFGTS = (fgts + fgts13Ferias) × 50%
-  totalFunc = salario + fgts + prov13 + provFerias + fgts13Ferias + avisoMensal + avisoComplementar + multaFGTS
-
-VT = passagem × passagens/dia × dias × qtdFunc
-Depreciação = (inventário / 50) / 60
-Brindes = qtd × (cmv + entrega) × fator
-Veículo = combustível + estac + pedágio + lavaJato + jurosMensal + pneuMensal + manutMensal + seguroMensal + franquiaMensal + ipvaMensal + desvalorizaçãoMensal
-Alimentação = qtdFunc × custoDiário × dias
-
-Total Invisíveis = IPTU + Salários + VT + Depreciação + Brindes + Veículos + Alimentação
+composicaoMargem = custoFixoPercent > 33 ? custoFixoPercent - 33 : 0
 ```
 
-- `custoFixoPercent` passa a usar: `(despesasVisíveisMês + totalInvisíveis) / faturamentoMês`
+Incluir `composicaoMargem` no spread do `dnaEmpresa` retornado. Exportar via context `composicaoMargem` diretamente para facilitar acesso.
 
-### 3. `src/pages/Financeiro.tsx` — Nova aba "Custos Invisíveis"
+### 3. `src/pages/Financeiro.tsx` — Card "Regra do Custo Fixo" na tab Despesas Fixas
 
-Adicionar uma 4ª tab no TabsList: **"Custos Invisíveis"**.
+Adicionar um Card abaixo do resumo mensal com:
+- Custo Fixo Médio (R$) e Faturamento Médio (R$)
+- % Custo Fixo (valor calculado)
+- Limite Saudável: 33%
+- Composição de Margem: `0%` ou valor excedente
+- Status: ✅ ou ⚠️ com mensagem explicativa
+- Alertas inteligentes contextuais
 
-**Conteúdo da aba** — seções colapsáveis (Accordion) para cada categoria:
+### 4. `src/pages/Dashboard.tsx` — Card de Composição de Margem
 
-1. **IPTU**: Input valor anual → mostra mensal automático
-2. **Salário e Provisionamentos**: Tabela CRUD de funcionários (nome, cargo, salário). Para cada um, exibe detalhamento automático (FGTS, 13º, férias, etc.). Total ao final.
-3. **Vale Transporte**: 4 inputs (passagem, passagens/dia, dias, qtd funcionários) → total automático
-4. **Depreciação de Maquinário**: Input valor inventário → mensal automático
-5. **Brindes**: 4 inputs (qtd/semana, CMV, entrega, fator mensal) → total automático
-6. **Veículos**: CRUD de veículos com todos os campos manuais. Cada veículo mostra custo mensal detalhado. Total ao final.
-7. **Alimentação**: 3 inputs (qtd func, custo diário, dias) → total automático
+Adicionar um KPI card ou seção mostrando:
+- % Custo Fixo atual
+- Composição de Margem (se > 0, destaque em vermelho)
+- Mensagem de alerta quando excedente
 
-**Quadro-resumo** no topo: Total por categoria + Total Custos Invisíveis.
+### 5. `src/pages/PainelMetas.tsx` — Novo indicador
 
-**Alertas inteligentes**: Cards de aviso quando custos invisíveis > 30% do custo fixo total, ou quando salários são a maior parcela.
+Adicionar um 7º indicador ao painel:
+- **Custo Fixo %**: ≤ 33% → ✅ Saudável, > 33% → 🚨 Acima do limite
+- Exibir composição de margem como sub-info
 
-### 4. `src/pages/Financeiro.tsx` — Tab "Despesas Fixas" atualizada
+### 6. `src/pages/DREAnual.tsx` — Linha de Composição de Margem
 
-No Resumo Mensal, mostrar 3 linhas:
-- Despesas Fixas Visíveis (soma lançamentos manuais)
-- Custos Fixos Invisíveis (total calculado)
-- **Total Custo Fixo** (soma dos dois)
-
-O % Custo Fixo e a Média passam a usar o Total Custo Fixo completo.
-
-### 5. Sem alteração em rotas/sidebar
-
-Custos Invisíveis é uma aba dentro do Financeiro existente, não uma página nova.
+Na seção de Indicadores do DRE, adicionar linha "Composição de Margem (%)" calculada mês a mês.
 
 ## Arquivos afetados
 
-- `src/types/index.ts` — novos tipos (Funcionario, Veiculo, CustosInvisiveis, expandir AppState)
-- `src/contexts/AppContext.tsx` — novo state, action, cálculo no recompute
-- `src/pages/Financeiro.tsx` — nova aba + atualização do resumo mensal
+- `src/types/index.ts` — adicionar `composicaoMargem` ao DNAEmpresa
+- `src/contexts/AppContext.tsx` — cálculo no recompute
+- `src/pages/Financeiro.tsx` — card de regra do custo fixo
+- `src/pages/Dashboard.tsx` — KPI de composição de margem
+- `src/pages/PainelMetas.tsx` — novo indicador
+- `src/pages/DREAnual.tsx` — linha de composição de margem nos indicadores
 
