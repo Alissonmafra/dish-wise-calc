@@ -13,6 +13,7 @@ import Precificacao from "./pages/Precificacao";
 import Combos from "./pages/Combos";
 import Fechamento from "./pages/Fechamento";
 import ItensCardapio from "./pages/ItensCardapio";
+import ItensManipulados from "./pages/ItensManipulados";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
