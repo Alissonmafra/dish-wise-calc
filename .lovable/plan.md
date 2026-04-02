@@ -1,38 +1,39 @@
 
 
-# Despesas Fixas — Resumo Mensal com % por Mês
+# Ajuste na Aba Faturamento Mensal
 
 ## O que muda
 
-Atualmente o sistema calcula o custo fixo % usando **médias globais** (média despesas / média faturamento). A planilha original calcula **por mês**: soma despesas do mês / faturamento do mesmo mês × 100.
+A aba "Faturamento" atual tem apenas uma tabela simples e um card de média. Precisa adicionar:
+1. Um gráfico de barras com valores acima das barras
+2. Um bloco de aviso "IMPORTANTE" com texto explicativo
+3. Melhorar o card de média com título correto
+4. Manter a coluna "Faturamento (R$)" com label correto
 
-## Alterações
+## Alterações em `src/pages/Financeiro.tsx`
 
-### 1. Financeiro.tsx — Adicionar tabela-resumo mensal na aba Despesas Fixas
+### Aba Faturamento (linhas 174-194)
 
-Após a tabela de lançamentos, adicionar uma segunda tabela "Resumo Mensal" com colunas:
-- **Mês** | **Total Custo Fixo (R$)** | **Custo Fixo (%)**
+Reestruturar para conter:
 
-Lógica:
-- Agrupar `state.despesasFixas` por mês → somar valores
-- Para cada mês, buscar o faturamento correspondente em `state.faturamento`
-- Se faturamento > 0: `% = (totalDespesasMes / faturamentoMes) × 100`
-- Se faturamento = 0 ou ausente: exibir `"-"` na coluna %
-- Linha final: **Média Custo Fixo R$** e **Média Custo Fixo %** (apenas meses preenchidos)
+1. **Card "Média Faturamento Mensal (R$)"** — já existe, ajustar título para "Média Faturamento Mensal (R$)"
 
-Atualizar os cards de resumo no topo para mostrar Média R$ e Média %.
+2. **Bloco de aviso** — Card amarelo/amber com:
+   - Título: "IMPORTANTE"
+   - Texto: "Faturamento: deverá ser preenchido com o valor do faturamento do mês, isso refletirá no cálculo do % Custo Fixo."
 
-### 2. AppContext.tsx — Ajustar custoFixoPercent no DNA
+3. **Tabela** — manter como está, ajustar header para "Faturamento (R$)"
 
-Alterar o cálculo do `custoFixoPercent` na função `recompute` para usar a **média dos percentuais mensais** (apenas meses com faturamento > 0), alinhando com a planilha:
-- Para cada mês com despesas E faturamento > 0: calcular `(totalDespMes / fatMes) × 100`
-- `custoFixoPercent` = média desses percentuais
+4. **Gráfico de barras** — usar Recharts (já instalado no projeto):
+   - `BarChart` com eixo X = meses, eixo Y = faturamento
+   - `LabelList` para mostrar valor em R$ acima de cada barra
+   - Mostrar apenas meses com valor > 0 nas barras (todos os meses no eixo X)
+   - Título "Faturamento Mensal" acima do gráfico
 
-### 3. Mês como Select no modal
+### Imports necessários
+- Adicionar `BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LabelList` de `recharts`
+- Adicionar `AlertTriangle` de `lucide-react` (opcional, para o ícone do aviso)
 
-Trocar o campo "Mês" no modal de nova despesa de input texto livre para um `<Select>` com os 12 meses pré-definidos, evitando erros de digitação e garantindo correspondência com a tabela de faturamento.
-
-## Arquivos afetados
-- `src/pages/Financeiro.tsx` — tabela-resumo mensal + select de mês
-- `src/contexts/AppContext.tsx` — cálculo custoFixoPercent por mês
+## Arquivo afetado
+- `src/pages/Financeiro.tsx` — apenas a seção `TabsContent value="faturamento"`
 
