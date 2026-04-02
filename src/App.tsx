@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Financeiro from "./pages/Financeiro";
 import Insumos from "./pages/Insumos";
 import FichasTecnicas from "./pages/FichasTecnicas";
+import FichaManipulacao from "./pages/FichaManipulacao";
 import Precificacao from "./pages/Precificacao";
 import Combos from "./pages/Combos";
 import Fechamento from "./pages/Fechamento";
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/insumos" element={<Insumos />} />
               <Route path="/itens-cardapio" element={<ItensCardapio />} />
               <Route path="/itens-manipulados" element={<ItensManipulados />} />
+              <Route path="/ficha-manipulacao" element={<FichaManipulacao />} />
               <Route path="/fichas-tecnicas" element={<FichasTecnicas />} />
               <Route path="/precificacao" element={<Precificacao />} />
               <Route path="/combos" element={<Combos />} />
