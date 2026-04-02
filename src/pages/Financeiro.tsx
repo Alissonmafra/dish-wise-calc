@@ -551,6 +551,11 @@ export default function Financeiro() {
           </Card>
         </TabsContent>
 
+        {/* ===== IMPOSTOS (SIMPLES NACIONAL) ===== */}
+        <TabsContent value="impostos" className="space-y-4">
+          <ImpostosTab />
+        </TabsContent>
+
         {/* ===== DNA DA EMPRESA ===== */}
         <TabsContent value="dna" className="space-y-4">
           <Card>
