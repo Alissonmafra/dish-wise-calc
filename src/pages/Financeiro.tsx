@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
+import ImpostosTab from '@/components/ImpostosTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Plus, Trash2, Info, AlertTriangle, Eye, EyeOff, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2, Info, AlertTriangle, Eye, EyeOff, ShieldCheck, ShieldAlert, Calculator } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LabelList } from 'recharts';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { DespesaFixa, Funcionario, Veiculo, CustosInvisiveis } from '@/types';
@@ -156,6 +158,7 @@ export default function Financeiro() {
           <TabsTrigger value="despesas"><Eye className="h-3.5 w-3.5 mr-1" />Despesas Fixas</TabsTrigger>
           <TabsTrigger value="invisiveis"><EyeOff className="h-3.5 w-3.5 mr-1" />Custos Invisíveis</TabsTrigger>
           <TabsTrigger value="faturamento">Faturamento</TabsTrigger>
+          <TabsTrigger value="impostos"><Calculator className="h-3.5 w-3.5 mr-1" />Impostos</TabsTrigger>
           <TabsTrigger value="dna">DNA da Empresa</TabsTrigger>
         </TabsList>
 
@@ -546,6 +549,11 @@ export default function Financeiro() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ===== IMPOSTOS (SIMPLES NACIONAL) ===== */}
+        <TabsContent value="impostos" className="space-y-4">
+          <ImpostosTab />
         </TabsContent>
 
         {/* ===== DNA DA EMPRESA ===== */}

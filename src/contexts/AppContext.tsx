@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
-import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis } from '@/types';
+import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis, SimplesNacional } from '@/types';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
 
 const STORAGE_KEY = 'precificacao-saas';
@@ -216,6 +216,7 @@ const initialState: AppState = recompute({
     },
     faturamentoBruto: Array(12).fill(0),
   },
+  simplesNacional: { anexo: 'I', rbt12Manual: 0, modoSimulacao: true },
   diagnosticoRespostas: [],
 });
 
@@ -233,6 +234,7 @@ type Action =
   | { type: 'SET_CUSTOS_INVISIVEIS'; payload: CustosInvisiveis }
   | { type: 'SET_DRE'; payload: DREState }
   | { type: 'SET_DIAGNOSTICO'; payload: DiagnosticoResposta[] }
+  | { type: 'SET_SIMPLES_NACIONAL'; payload: SimplesNacional }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -250,6 +252,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_CUSTOS_INVISIVEIS': return recompute({ ...state, custosInvisiveis: action.payload });
     case 'SET_DRE': return { ...state, dre: action.payload };
     case 'SET_DIAGNOSTICO': return { ...state, diagnosticoRespostas: action.payload };
+    case 'SET_SIMPLES_NACIONAL': return { ...state, simplesNacional: action.payload };
     case 'LOAD_STATE': return recompute(action.payload);
     default: return state;
   }
@@ -267,6 +270,7 @@ function loadState(): AppState {
           ? { ...initialCustosInvisiveis, ...parsed.custosInvisiveis, valeTransporte: { ...initialCustosInvisiveis.valeTransporte, ...(parsed.custosInvisiveis?.valeTransporte || {}) }, brindes: { ...initialCustosInvisiveis.brindes, ...(parsed.custosInvisiveis?.brindes || {}) }, alimentacao: { ...initialCustosInvisiveis.alimentacao, ...(parsed.custosInvisiveis?.alimentacao || {}) } }
           : initialCustosInvisiveis,
         dre: parsed.dre ? { ...initialState.dre, ...parsed.dre, percentuais: { ...initialState.dre.percentuais, ...(parsed.dre?.percentuais || {}) } } : initialState.dre,
+        simplesNacional: parsed.simplesNacional ? { ...initialState.simplesNacional, ...parsed.simplesNacional } : initialState.simplesNacional,
         diagnosticoRespostas: parsed.diagnosticoRespostas || [],
       });
     }

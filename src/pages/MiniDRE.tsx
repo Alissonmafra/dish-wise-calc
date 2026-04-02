@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { calcularImpostoSimples } from '@/lib/simplesNacionalCalc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,7 +11,7 @@ const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2,
 const fmtPct = (v: number) => (v * 100).toFixed(1) + '%';
 
 export default function MiniDRE() {
-  const { state } = useApp();
+  const { state, mediaFaturamento } = useApp();
   const { produtos, dre } = state;
   const p = dre.percentuais;
 
@@ -25,7 +26,16 @@ export default function MiniDRE() {
     const pv = precoVendaManual;
     if (!pv || pv <= 0) return null;
 
-    const impostos = pv * p.impostos / 100;
+    // Use Simples Nacional effective rate when configured
+    const sn = state.simplesNacional;
+    let taxaImpostos = p.impostos;
+    if (sn.anexo) {
+      const rbt12 = sn.modoSimulacao ? mediaFaturamento * 12 : sn.rbt12Manual;
+      const res = calcularImpostoSimples(mediaFaturamento, rbt12, sn.anexo);
+      if (res.aliquotaEfetiva > 0) taxaImpostos = res.aliquotaEfetiva;
+    }
+
+    const impostos = pv * taxaImpostos / 100;
     const receitaLiquida = pv - impostos;
     const ingredientes = produto ? produto.cmv : 0;
     const embalagem = produto ? produto.custoEmbalagem : 0;
@@ -52,7 +62,7 @@ export default function MiniDRE() {
       totalCustoProd, pctCustoProd, aluguel, energiaAgua, honorariosMidia, taxaMaq,
       outros, totalDespRateadas, lucroBruto, margemLucro, fatMensal, lucroMensal,
     };
-  }, [precoVendaManual, produto, p, qtdMes]);
+  }, [precoVendaManual, produto, p, qtdMes, state.simplesNacional, mediaFaturamento]);
 
   const Row = ({ label, value, bold, pct }: { label: string; value: number; bold?: boolean; pct?: boolean }) => (
     <div className={`flex justify-between py-1 ${bold ? 'font-bold' : ''}`}>

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { calcularImpostoSimples } from '@/lib/simplesNacionalCalc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import type { DREPercentuais } from '@/types';
@@ -100,10 +101,25 @@ const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2,
 const fmtPct = (v: number) => (v * 100).toFixed(1) + '%';
 
 export default function DREAnual() {
-  const { state, dispatch } = useApp();
+  const { state, dispatch, mediaFaturamento } = useApp();
   const { dre } = state;
-  const p = dre.percentuais;
+  const pBase = dre.percentuais;
   const fatArr = dre.faturamentoBruto;
+
+  // Calculate effective Simples rate to use for Impostos line
+  const simplesEfetiva = useMemo(() => {
+    const sn = state.simplesNacional;
+    if (!sn.anexo) return null;
+    const rbt12 = sn.modoSimulacao ? mediaFaturamento * 12 : sn.rbt12Manual;
+    const res = calcularImpostoSimples(mediaFaturamento, rbt12, sn.anexo);
+    return res.aliquotaEfetiva > 0 ? res.aliquotaEfetiva : null;
+  }, [state.simplesNacional, mediaFaturamento]);
+
+  // Override impostos % with Simples effective rate when available
+  const p = useMemo(() => {
+    if (simplesEfetiva !== null) return { ...pBase, impostos: simplesEfetiva };
+    return pBase;
+  }, [pBase, simplesEfetiva]);
 
   const data = useMemo(() => {
     return dreLines.map(line => {
