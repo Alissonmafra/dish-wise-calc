@@ -239,7 +239,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const mediaDespesas = state.despesasFixas.reduce((s, d) => s + d.valor, 0) / mesesDespesas;
 
   const dna = state.dnaEmpresa;
-  const dnaTotal = dna.custoFixoPercent + dna.taxaDebito + dna.taxaCredito + dna.mediaCartao + dna.impostos + dna.royalties + dna.marketing + dna.voucher;
+  const dnaTotal = dna.custoFixoPercent + dna.mediaCartao + dna.impostos + dna.royalties + dna.marketing + dna.voucher;
 
   const value = useMemo(() => ({ state, dispatch, dnaTotal, mediaDespesas, mediaFaturamento }), [state, dnaTotal, mediaDespesas, mediaFaturamento]);
 
