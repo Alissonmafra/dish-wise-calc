@@ -26,7 +26,16 @@ export default function MiniDRE() {
     const pv = precoVendaManual;
     if (!pv || pv <= 0) return null;
 
-    const impostos = pv * p.impostos / 100;
+    // Use Simples Nacional effective rate when configured
+    const sn = state.simplesNacional;
+    let taxaImpostos = p.impostos;
+    if (sn.anexo) {
+      const rbt12 = sn.modoSimulacao ? mediaFaturamento * 12 : sn.rbt12Manual;
+      const res = calcularImpostoSimples(mediaFaturamento, rbt12, sn.anexo);
+      if (res.aliquotaEfetiva > 0) taxaImpostos = res.aliquotaEfetiva;
+    }
+
+    const impostos = pv * taxaImpostos / 100;
     const receitaLiquida = pv - impostos;
     const ingredientes = produto ? produto.cmv : 0;
     const embalagem = produto ? produto.custoEmbalagem : 0;
