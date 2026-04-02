@@ -3,6 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
 import { calcularImpostoSimples, obterTabela } from '@/lib/simplesNacionalCalc';
+import ImpostosTab from '@/components/ImpostosTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
