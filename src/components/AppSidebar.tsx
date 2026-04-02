@@ -13,6 +13,7 @@ const items = [
   { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
   { title: 'Insumos', url: '/insumos', icon: Package },
   { title: 'Itens do Cardápio', url: '/itens-cardapio', icon: ClipboardList },
+  { title: 'Itens Manipulados', url: '/itens-manipulados', icon: ChefHat },
   { title: 'Fichas Técnicas', url: '/fichas-tecnicas', icon: BookOpen },
   { title: 'Precificação', url: '/precificacao', icon: Calculator },
   { title: 'Combos', url: '/combos', icon: Layers },

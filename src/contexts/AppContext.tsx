@@ -217,7 +217,7 @@ function reducer(state: AppState, action: Action): AppState {
 function loadState(): AppState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return recompute(JSON.parse(saved));
+    if (saved) return recompute({ ...initialState, ...JSON.parse(saved) });
   } catch {}
   return initialState;
 }

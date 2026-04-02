@@ -95,6 +95,11 @@ export interface ItemCardapio {
   nome: string;
 }
 
+export interface ItemManipulado {
+  id: string;
+  nome: string;
+}
+
 export interface AppState {
   despesasFixas: DespesaFixa[];
   faturamento: FaturamentoMensal[];
@@ -105,4 +110,5 @@ export interface AppState {
   combos: Combo[];
   fechamentos: FechamentoDia[];
   itensCardapio: ItemCardapio[];
+  itensManipulados: ItemManipulado[];
 }
