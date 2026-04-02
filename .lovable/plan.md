@@ -1,60 +1,89 @@
 
 
-# Regra de Custo Fixo (%) e Composição de Margem
+# Submódulo: Custos Variáveis — Imposto (Simples Nacional)
 
 ## Resumo
 
-Adicionar ao DNAEmpresa um campo `composicaoMargem` calculado automaticamente. Quando o `custoFixoPercent` ultrapassa 33%, o excedente é exibido como "Composição de Margem". Exibir essa regra no Dashboard, Financeiro, Painel de Metas e DNA da Empresa com alertas visuais.
+Criar um sistema de cálculo de imposto pelo Simples Nacional com tabela de faixas por anexo, cálculo de alíquota efetiva via RBT12, e modo simulação. Integrar o resultado no DRE, Mini-DRE e DNA da Empresa.
 
 ## Alterações
 
-### 1. `src/types/index.ts` — Expandir DNAEmpresa
+### 1. `src/types/index.ts` — Novos tipos
 
-Adicionar campo computed `composicaoMargem: number` ao `DNAEmpresa`.
+```typescript
+export interface FaixaSimplesNacional {
+  limiteInferior: number;
+  limiteSuperior: number;
+  aliquotaNominal: number; // em %
+  parcelaADeduzir: number;
+}
 
-### 2. `src/contexts/AppContext.tsx` — Cálculo automático no `recompute()`
-
-Após calcular `custoFixoPercent`, calcular:
-
-```text
-composicaoMargem = custoFixoPercent > 33 ? custoFixoPercent - 33 : 0
+export interface SimplesNacional {
+  anexo: string; // 'I' | 'II' | 'III' | 'IV' | 'V' | ''
+  rbt12Manual: number; // RBT12 informado manualmente
+  modoSimulacao: boolean; // se true, RBT12 = faturamento mensal × 12
+}
 ```
 
-Incluir `composicaoMargem` no spread do `dnaEmpresa` retornado. Exportar via context `composicaoMargem` diretamente para facilitar acesso.
+Adicionar `simplesNacional: SimplesNacional` ao `AppState`.
 
-### 3. `src/pages/Financeiro.tsx` — Card "Regra do Custo Fixo" na tab Despesas Fixas
+### 2. `src/lib/simplesNacionalCalc.ts` — Tabelas e cálculo
 
-Adicionar um Card abaixo do resumo mensal com:
-- Custo Fixo Médio (R$) e Faturamento Médio (R$)
-- % Custo Fixo (valor calculado)
-- Limite Saudável: 33%
-- Composição de Margem: `0%` ou valor excedente
-- Status: ✅ ou ⚠️ com mensagem explicativa
-- Alertas inteligentes contextuais
+- Cadastrar as 6 faixas do Anexo I (conforme especificação)
+- Estrutura preparada para anexos II-V (tabelas futuras, por enquanto só Anexo I)
+- Função `calcularImpostoSimples(faturamentoMensal, rbt12, anexo)` que retorna:
+  - `faixa` (descrição da faixa enquadrada)
+  - `aliquotaNominal` (%)
+  - `parcelaADeduzir` (R$)
+  - `aliquotaEfetiva` (%) = `((RBT12 × alíqNom) - dedução) / RBT12`
+  - `impostoMensal` (R$) = `faturamento × alíqEfetiva`
+  - `alertas` (array de strings para erros/avisos)
 
-### 4. `src/pages/Dashboard.tsx` — Card de Composição de Margem
+### 3. `src/contexts/AppContext.tsx` — State e integração
 
-Adicionar um KPI card ou seção mostrando:
-- % Custo Fixo atual
-- Composição de Margem (se > 0, destaque em vermelho)
-- Mensagem de alerta quando excedente
+- Adicionar `simplesNacional` ao `initialState` com valores zerados e `modoSimulacao: false`
+- Adicionar action `SET_SIMPLES_NACIONAL`
+- No `loadState`, merge seguro com fallback
+- O imposto calculado deve poder alimentar `dnaEmpresa.impostos` automaticamente (alíquota efetiva)
 
-### 5. `src/pages/PainelMetas.tsx` — Novo indicador
+### 4. `src/pages/Financeiro.tsx` — Nova aba "Impostos"
 
-Adicionar um 7º indicador ao painel:
-- **Custo Fixo %**: ≤ 33% → ✅ Saudável, > 33% → 🚨 Acima do limite
-- Exibir composição de margem como sub-info
+Adicionar 5ª tab **"Impostos"** com:
 
-### 6. `src/pages/DREAnual.tsx` — Linha de Composição de Margem
+**Configuração:**
+- Select do Anexo (I a V, default vazio com alerta)
+- Toggle modo simulação (on/off)
+- Input RBT12 manual (desabilitado no modo simulação)
+- Input faturamento mensal (pode puxar da média do faturamento cadastrado)
 
-Na seção de Indicadores do DRE, adicionar linha "Composição de Margem (%)" calculada mês a mês.
+**Resultado automático:**
+- Faixa enquadrada
+- Alíquota nominal (%)
+- Parcela a deduzir (R$)
+- **Alíquota efetiva (%)** — destaque visual
+- **Imposto do mês (R$)** — destaque visual
+
+**Card educativo:** explicando que a alíquota usada não é a nominal da faixa, e sim a efetiva.
+
+**Alertas:** anexo não definido, RBT12 vazio, faturamento zero.
+
+**Tabela de referência:** exibir a tabela completa do anexo selecionado para consulta.
+
+### 5. Integração com DRE e Mini-DRE
+
+- No DRE (`src/pages/DREAnual.tsx`): a linha de Impostos pode usar a alíquota efetiva do Simples quando configurado (ou manter o % manual do DRE — deixar configurável)
+- No Mini-DRE (`src/pages/MiniDRE.tsx`): usar a alíquota efetiva do Simples no cálculo de impostos por produto, quando disponível
+
+### 6. `src/components/AppSidebar.tsx` — Sem alteração
+
+Impostos é uma aba dentro do Financeiro, não uma página nova.
 
 ## Arquivos afetados
 
-- `src/types/index.ts` — adicionar `composicaoMargem` ao DNAEmpresa
-- `src/contexts/AppContext.tsx` — cálculo no recompute
-- `src/pages/Financeiro.tsx` — card de regra do custo fixo
-- `src/pages/Dashboard.tsx` — KPI de composição de margem
-- `src/pages/PainelMetas.tsx` — novo indicador
-- `src/pages/DREAnual.tsx` — linha de composição de margem nos indicadores
+- `src/types/index.ts` — novos tipos SimplesNacional
+- `src/lib/simplesNacionalCalc.ts` — novo arquivo com tabelas e cálculo
+- `src/contexts/AppContext.tsx` — novo state e action
+- `src/pages/Financeiro.tsx` — nova aba Impostos
+- `src/pages/DREAnual.tsx` — integração opcional da alíquota efetiva
+- `src/pages/MiniDRE.tsx` — integração opcional da alíquota efetiva
 
