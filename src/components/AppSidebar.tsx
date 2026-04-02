@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, DollarSign, Package, BookOpen, Calculator, Layers, Receipt, ClipboardList, ChefHat,
+  LayoutDashboard, DollarSign, Package, BookOpen, Calculator, Layers, Receipt, ClipboardList, ChefHat, TrendingUp,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -16,6 +16,7 @@ const items = [
   { title: 'Itens Manipulados', url: '/itens-manipulados', icon: ChefHat },
   { title: 'Ficha Técnica Manipulação', url: '/ficha-manipulacao', icon: BookOpen },
   { title: 'Ficha Técnica Produto', url: '/ficha-produto', icon: BookOpen },
+  { title: 'Lucro Atual', url: '/lucro-atual', icon: TrendingUp },
   { title: 'Precificação', url: '/precificacao', icon: Calculator },
   { title: 'Combos', url: '/combos', icon: Layers },
   { title: 'Fechamento', url: '/fechamento', icon: Receipt },
