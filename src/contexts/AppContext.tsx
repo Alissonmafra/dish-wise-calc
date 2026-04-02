@@ -192,6 +192,7 @@ type Action =
   | { type: 'SET_PRODUTOS'; payload: ProdutoCardapio[] }
   | { type: 'SET_COMBOS'; payload: Combo[] }
   | { type: 'SET_FECHAMENTOS'; payload: FechamentoDia[] }
+  | { type: 'SET_ITENS_CARDAPIO'; payload: ItemCardapio[] }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
