@@ -11,7 +11,7 @@ const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2,
 const fmtPct = (v: number) => (v * 100).toFixed(1) + '%';
 
 export default function MiniDRE() {
-  const { state } = useApp();
+  const { state, mediaFaturamento } = useApp();
   const { produtos, dre } = state;
   const p = dre.percentuais;
 
