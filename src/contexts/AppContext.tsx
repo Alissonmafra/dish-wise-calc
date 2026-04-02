@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
-import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio } from '@/types';
+import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado } from '@/types';
 
 const STORAGE_KEY = 'precificacao-saas';
 
@@ -181,6 +181,7 @@ const initialState: AppState = recompute({
   ],
   fechamentos: [],
   itensCardapio: [],
+  itensManipulados: [],
 });
 
 type Action =
@@ -193,6 +194,7 @@ type Action =
   | { type: 'SET_COMBOS'; payload: Combo[] }
   | { type: 'SET_FECHAMENTOS'; payload: FechamentoDia[] }
   | { type: 'SET_ITENS_CARDAPIO'; payload: ItemCardapio[] }
+  | { type: 'SET_ITENS_MANIPULADOS'; payload: ItemManipulado[] }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -206,6 +208,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_COMBOS': return recompute({ ...state, combos: action.payload });
     case 'SET_FECHAMENTOS': return { ...state, fechamentos: action.payload };
     case 'SET_ITENS_CARDAPIO': return { ...state, itensCardapio: action.payload };
+    case 'SET_ITENS_MANIPULADOS': return { ...state, itensManipulados: action.payload };
     case 'LOAD_STATE': return recompute(action.payload);
     default: return state;
   }
@@ -214,7 +217,7 @@ function reducer(state: AppState, action: Action): AppState {
 function loadState(): AppState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return recompute(JSON.parse(saved));
+    if (saved) return recompute({ ...initialState, ...JSON.parse(saved) });
   } catch {}
   return initialState;
 }
