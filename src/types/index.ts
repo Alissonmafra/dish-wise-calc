@@ -103,6 +103,59 @@ export interface ItemManipulado {
   nome: string;
 }
 
+export interface Funcionario {
+  id: string;
+  nome: string;
+  cargo: string;
+  salarioBase: number;
+}
+
+export interface Veiculo {
+  id: string;
+  nome: string;
+  combustivel: number;
+  estacionamento: number;
+  pedagio: number;
+  lavaJato: number;
+  valorFipe: number;
+  valorTotalFinanciamento: number;
+  qtdParcelas: number;
+  valorPneus: number;
+  vidaUtilPneusMeses: number;
+  manutencaoAnual: number;
+  seguroAnual: number;
+  franquiaSeguro: number;
+  frequenciaFranquiaMeses: number;
+  ipvaAnual: number;
+  valorCompra: number;
+  valorVendaFutura: number;
+  periodoUsoMeses: number;
+}
+
+export interface CustosInvisiveis {
+  iptuAnual: number;
+  funcionarios: Funcionario[];
+  valeTransporte: {
+    valorPassagem: number;
+    passagensPorDia: number;
+    diasTrabalhados: number;
+    qtdFuncionarios: number;
+  };
+  depreciacaoInventario: number;
+  brindes: {
+    qtdPorSemana: number;
+    cmvUnitario: number;
+    entregaUnitaria: number;
+    fatorMensal: number;
+  };
+  veiculos: Veiculo[];
+  alimentacao: {
+    qtdFuncionarios: number;
+    custoDiario: number;
+    diasTrabalhados: number;
+  };
+}
+
 export interface DREPercentuais {
   impostos: number;
   ingredientes: number;
