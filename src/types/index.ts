@@ -18,11 +18,11 @@ export interface DNAEmpresa {
   composicaoMargem: number; // auto-calculated: max(custoFixoPercent - 33, 0)
   taxaDebito: number;
   taxaCredito: number;
-  mediaCartao: number;
-  impostos: number;
-  royalties: number;
-  marketing: number;
+  mediaCartao: number; // auto: (taxaDebito + taxaCredito) / 2
+  impostos: number; // auto: alíquota efetiva do Simples Nacional
   voucher: number;
+  franquia: number;
+  isFranquia: boolean;
 }
 
 export interface Insumo {
