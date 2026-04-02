@@ -615,7 +615,7 @@ export default function Financeiro() {
               {/* Franchise toggle */}
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Switch checked={dna.isFranquia} onCheckedChange={v => updateDNA('isFranquia', v ? 1 : 0)} />
+                  <Switch checked={dna.isFranquia} onCheckedChange={v => updateDNA('isFranquia', v)} />
                   <Label>A empresa é uma franquia?</Label>
                 </div>
                 {dna.isFranquia && (
