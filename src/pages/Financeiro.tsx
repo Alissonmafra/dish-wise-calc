@@ -158,6 +158,7 @@ export default function Financeiro() {
           <TabsTrigger value="despesas"><Eye className="h-3.5 w-3.5 mr-1" />Despesas Fixas</TabsTrigger>
           <TabsTrigger value="invisiveis"><EyeOff className="h-3.5 w-3.5 mr-1" />Custos Invisíveis</TabsTrigger>
           <TabsTrigger value="faturamento">Faturamento</TabsTrigger>
+          <TabsTrigger value="impostos"><Calculator className="h-3.5 w-3.5 mr-1" />Impostos</TabsTrigger>
           <TabsTrigger value="dna">DNA da Empresa</TabsTrigger>
         </TabsList>
 
