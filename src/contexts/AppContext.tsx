@@ -124,6 +124,7 @@ const initialState: AppState = recompute({
   })),
   dnaEmpresa: {
     custoFixoPercent: 0,
+    composicaoMargem: 0,
     taxaDebito: 2,
     taxaCredito: 5,
     mediaCartao: 3.5,

@@ -15,6 +15,7 @@ export interface FaturamentoMensal {
 
 export interface DNAEmpresa {
   custoFixoPercent: number; // auto-calculated
+  composicaoMargem: number; // auto-calculated: max(custoFixoPercent - 33, 0)
   taxaDebito: number;
   taxaCredito: number;
   mediaCartao: number;
