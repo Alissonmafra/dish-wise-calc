@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Info } from 'lucide-react';
+import { Plus, Trash2, Info, AlertTriangle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LabelList } from 'recharts';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { DespesaFixa } from '@/types';
 
@@ -173,12 +174,23 @@ export default function Financeiro() {
 
         <TabsContent value="faturamento" className="space-y-4">
           <Card className="px-4 py-2 w-fit">
-            <p className="text-xs text-muted-foreground">Média de Faturamento</p>
+            <p className="text-xs text-muted-foreground">Média Faturamento Mensal (R$)</p>
             <p className="text-lg font-bold">{formatBRL(state.faturamento.filter(f => f.valor > 0).length > 0 ? state.faturamento.filter(f => f.valor > 0).reduce((s, f) => s + f.valor, 0) / state.faturamento.filter(f => f.valor > 0).length : 0)}</p>
           </Card>
+
+          <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700">
+            <CardContent className="flex items-start gap-3 p-4">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-amber-800 dark:text-amber-300">IMPORTANTE</p>
+                <p className="text-sm text-amber-700 dark:text-amber-400">Faturamento: deverá ser preenchido com o valor do faturamento do mês, isso refletirá no cálculo do % Custo Fixo.</p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <Table>
-              <TableHeader><TableRow><TableHead>Mês</TableHead><TableHead className="text-right">Faturamento</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Mês</TableHead><TableHead className="text-right">Faturamento (R$)</TableHead></TableRow></TableHeader>
               <TableBody>
                 {state.faturamento.map(f => (
                   <TableRow key={f.id}>
@@ -190,6 +202,22 @@ export default function Financeiro() {
                 ))}
               </TableBody>
             </Table>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">Faturamento Mensal</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={state.faturamento.map(f => ({ mes: f.mes.substring(0, 3), valor: f.valor }))}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="mes" className="text-xs" />
+                  <YAxis tickFormatter={(v: number) => formatBRL(v)} className="text-xs" width={100} />
+                  <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="valor" position="top" formatter={(v: number) => v > 0 ? formatBRL(v) : ''} className="text-xs fill-foreground" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
           </Card>
         </TabsContent>
 
