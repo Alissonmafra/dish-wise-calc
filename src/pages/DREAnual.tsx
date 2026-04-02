@@ -92,6 +92,7 @@ const dreLines: DRELine[] = [
   { label: 'CMV % do Faturamento', isIndicator: true, totalKey: 'cmvPct' },
   { label: 'Margem EBITDA', isIndicator: true, totalKey: 'margemEbitda' },
   { label: 'Margem Líquida', isIndicator: true, totalKey: 'margemLiq' },
+  { label: 'Composição de Margem (%)', isIndicator: true, totalKey: 'composicaoMargem' },
   { label: 'Ponto de Equilíbrio (R$)', isIndicator: true, totalKey: 'pontoEq' },
 ];
 
@@ -123,6 +124,12 @@ export default function DREAnual() {
           if (line.totalKey === 'cmvPct') return fat > 0 ? cmv / fat : 0;
           if (line.totalKey === 'margemEbitda') return fat > 0 ? ebitda / fat : 0;
           if (line.totalKey === 'margemLiq') return fat > 0 ? ebitda / fat : 0;
+          if (line.totalKey === 'composicaoMargem') {
+            // Uses the global custoFixoPercent rule: excess over 33%
+            // For per-month DRE, we approximate using total desp op as % of fat
+            const totalDespPct = (infra + com + adm + inv) / (fat || 1) * 100;
+            return totalDespPct > 33 ? (totalDespPct - 33) / 100 : 0;
+          }
           if (line.totalKey === 'pontoEq') return cmv + infra + com + adm + inv;
         }
         return 0;

@@ -1,15 +1,13 @@
 import { useApp } from '@/contexts/AppContext';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, TrendingUp, Package, BarChart3 } from 'lucide-react';
+import { DollarSign, TrendingUp, Package, BarChart3, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
 export default function Dashboard() {
   const { state, dnaTotal, mediaDespesas, mediaFaturamento } = useApp();
-
-  const margemMedia = mediaFaturamento > 0 ? ((mediaFaturamento - mediaDespesas) / mediaFaturamento) * 100 : 0;
 
   const dna = state.dnaEmpresa;
   const dnaPieData = [
@@ -24,7 +22,7 @@ export default function Dashboard() {
   ].filter(d => d.value > 0);
 
   const produtoRent = state.produtos.map(p => {
-    const precoVenda = p.cmv / (1 - dnaTotal / 100 - 0.1); // assume 10% margin
+    const precoVenda = p.cmv / (1 - dnaTotal / 100 - 0.1);
     const lucro = precoVenda > 0 ? ((precoVenda - p.cmv - precoVenda * dnaTotal / 100) / precoVenda) * 100 : 0;
     return { name: p.nome, cmv: p.cmv, lucro: Math.max(lucro, 0) };
   });
@@ -56,6 +54,37 @@ export default function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Composição de Margem Card */}
+      <Card className={dna.composicaoMargem > 0 ? 'border-destructive' : 'border-green-500'}>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Custo Fixo & Composição de Margem</CardTitle>
+          {dna.composicaoMargem > 0
+            ? <ShieldAlert className="h-4 w-4 text-destructive" />
+            : <ShieldCheck className="h-4 w-4 text-green-600" />}
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-baseline gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">% Custo Fixo</p>
+              <p className={`text-2xl font-bold ${dna.custoFixoPercent > 33 ? 'text-destructive' : 'text-green-600'}`}>
+                {formatPercent(dna.custoFixoPercent)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Composição de Margem</p>
+              <p className={`text-2xl font-bold ${dna.composicaoMargem > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                {formatPercent(dna.composicaoMargem)}
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            {dna.composicaoMargem > 0
+              ? `⚠️ Seu custo fixo passou de 33% e está consumindo ${formatPercent(dna.composicaoMargem)} da sua margem.`
+              : '✅ Seu custo fixo está dentro da faixa saudável (≤ 33%).'}
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>

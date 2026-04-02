@@ -88,6 +88,14 @@ export default function PainelMetas() {
         ? { label: '✅ OK', variant: 'default' }
         : { label: '⚠️ Acima', variant: 'secondary' },
     },
+    {
+      label: 'Custo Fixo %',
+      getValue: () => state.dnaEmpresa.custoFixoPercent / 100,
+      format: fmtPct,
+      getStatus: (v) => v <= 0.33
+        ? { label: '✅ Saudável', variant: 'default' }
+        : { label: '🚨 Acima do limite', variant: 'destructive' },
+    },
   ];
 
   return (
