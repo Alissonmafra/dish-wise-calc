@@ -1,64 +1,61 @@
 
 
-# Ficha Técnica de Manipulação
+# Ficha Técnica do Produto (Cardápio)
 
 ## Resumo
 
-Criar uma nova página dedicada exclusivamente às fichas técnicas de receitas manipuladas, separada da tela genérica atual `FichasTecnicas.tsx`. A página permitirá montar a composição de cada receita base com cálculos automáticos de custo.
-
-## Abordagem
-
-A tela atual `FichasTecnicas.tsx` mistura receitas e produtos em abas. A nova tela será independente, focada apenas em receitas manipuladas, com interface alinhada à imagem de referência (cabeçalho com nome/quantidade/medida/custo + tabela de insumos).
-
-Os dados já existem no estado global (`state.receitas` do tipo `ReceitaManipulacao[]`) e a lógica de cálculo em cascata já funciona no `AppContext`.
+Criar uma nova página dedicada para montar fichas técnicas dos produtos do cardápio, permitindo combinar insumos simples e receitas manipuladas com cálculo automático de custo. A página substituirá a aba "Produtos do Cardápio" da tela genérica `FichasTecnicas.tsx`.
 
 ## Alterações
 
-### 1. `src/pages/FichaManipulacao.tsx` — Nova página
+### 1. `src/pages/FichaProduto.tsx` — Nova página
 
-**Cabeçalho da ficha (por receita):**
-- **Nome da Receita**: Select puxando de `state.itensManipulados` (não digitação livre)
-- **Quantidade Produzida**: Input numérico manual
-- **Medida**: Select com Gramas/Mililitros/Unidade
-- **Custo da Receita (R$)**: Calculado automaticamente (soma das linhas), não editável
+**Layout por produto**: Cada ficha como um card individual (similar à referência), com:
 
-**Tabela de insumos (por receita):**
+**Cabeçalho:**
+- **Item do Cardápio**: Select puxando de `state.itensCardapio`
+- **Quantidade Produzida**: Input numérico (default 1)
+- **Custo do Produto (R$)**: Calculado automaticamente, não editável
+
+**Tabela de composição:**
 - Item (sequencial)
-- Insumos (select puxando de `state.insumos`)
-- Unidade de Medida (auto-preenchida do insumo selecionado, não editável)
-- Quantidade (input manual)
-- Preço R$ (calculado: quantidade × custoPorUnidade do insumo, não editável)
+- Insumos (select unificado: insumos do cadastro + receitas manipuladas, agrupados)
+- Unidade de Medida (auto-preenchida conforme origem, não editável)
+- Quantidade (manual)
+- Preço R$ (calculado: quantidade × custo unitário da origem)
 
-**Layout**: Exibir cada receita como um card individual (similar à imagem de referência — formulário de cabeçalho + tabela). Botão para criar nova ficha. Zebra-striping nas linhas.
+**Seleção de insumos**: O select combina `state.insumos` e `state.receitas` num único dropdown, com prefixo ou grupo para distinguir tipo. Ao selecionar, o sistema identifica se é `tipo: 'insumo'` ou `tipo: 'receita'` e preenche a unidade automaticamente.
+
+**KPI Card**: "Total de Fichas Cadastradas" com contagem.
 
 **Validação ao salvar**:
-- Nome da receita obrigatório
+- Item do cardápio obrigatório
 - Quantidade produzida > 0
-- Medida obrigatória
-- Pelo menos 1 insumo adicionado
-- Toast de erro para campos faltantes
+- Pelo menos 1 item na composição
 
-**Cálculos automáticos (já existentes no AppContext)**:
-- `custoTotal` = soma de (quantidade × custoPorUnidade) de cada ingrediente
-- `custoPorUnidade` = custoTotal / quantidadeProduzida
-- Recálculo em cascata quando insumos mudam
+**Zebra-striping** nas linhas da tabela.
+
+**Custo unitário por linha**:
+- Insumo: `quantidade × insumo.custoPorUnidade`
+- Receita manipulada: `quantidade × receita.custoPorUnidade`
 
 ### 2. `src/App.tsx` — Nova rota
 
-Adicionar `/ficha-manipulacao` → `<FichaManipulacao />`
+Adicionar `/ficha-produto` → `<FichaProduto />`
 
-### 3. `src/components/AppSidebar.tsx` — Novo item no menu
+### 3. `src/components/AppSidebar.tsx` — Atualizar menu
 
-Adicionar "Ficha Técnica Manipulação" posicionado após "Insumos", antes de "Fichas Técnicas" existente.
+Renomear "Fichas Técnicas" para "Ficha Técnica Produto" e apontar para `/ficha-produto`. Usar a rota da nova página.
 
 ### 4. Sem alterações em tipos ou contexto
 
-- `ReceitaManipulacao` e `ReceitaIngrediente` já existem nos tipos
-- `SET_RECEITAS` e `computeReceitaCusto` já existem no AppContext
-- A lógica de cascata (receita → produto → combo) já funciona
+- `ProdutoCardapio`, `ProdutoIngrediente` já existem com `tipo: 'insumo' | 'receita'`
+- `SET_PRODUTOS` e `computeProdutoCMV` já existem no AppContext
+- A lógica de cascata (insumo → receita → produto → combo) já funciona
+- O campo `custoEmbalagem` do tipo será mantido (pode ser incorporado como linha de insumo embalagem na ficha)
 
 ## Arquivos afetados
-- `src/pages/FichaManipulacao.tsx` (novo)
+- `src/pages/FichaProduto.tsx` (novo)
 - `src/App.tsx` — nova rota
-- `src/components/AppSidebar.tsx` — novo item menu
+- `src/components/AppSidebar.tsx` — atualizar item menu
 
