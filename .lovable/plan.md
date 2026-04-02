@@ -1,89 +1,58 @@
 
 
-# Submódulo: Custos Variáveis — Imposto (Simples Nacional)
+# Regra Oficial do DNA da Empresa
 
 ## Resumo
 
-Criar um sistema de cálculo de imposto pelo Simples Nacional com tabela de faixas por anexo, cálculo de alíquota efetiva via RBT12, e modo simulação. Integrar o resultado no DRE, Mini-DRE e DNA da Empresa.
+Reformular o cálculo do DNA da Empresa para seguir a fórmula oficial: `DNA = Custo Fixo (%) + Média Cartão (%) + Voucher (%) + Impostos (%) + Franquia (%)`. Remover `royalties` e `marketing` do DNA. Tornar `impostos` automático (alíquota efetiva do Simples). Adicionar campo `franquia` e toggle `isFranquia`. Redesenhar a aba DNA com mensagens educativas.
 
 ## Alterações
 
-### 1. `src/types/index.ts` — Novos tipos
+### 1. `src/types/index.ts` — Atualizar DNAEmpresa
 
-```typescript
-export interface FaixaSimplesNacional {
-  limiteInferior: number;
-  limiteSuperior: number;
-  aliquotaNominal: number; // em %
-  parcelaADeduzir: number;
-}
+- Remover `royalties` e `marketing` da interface
+- Adicionar `franquia: number` e `isFranquia: boolean`
 
-export interface SimplesNacional {
-  anexo: string; // 'I' | 'II' | 'III' | 'IV' | 'V' | ''
-  rbt12Manual: number; // RBT12 informado manualmente
-  modoSimulacao: boolean; // se true, RBT12 = faturamento mensal × 12
-}
-```
+### 2. `src/contexts/AppContext.tsx` — Novo cálculo do DNA
 
-Adicionar `simplesNacional: SimplesNacional` ao `AppState`.
+No `recompute()`:
+- Calcular `impostos` automaticamente usando a alíquota efetiva do Simples Nacional (via `calcularImpostoSimples`)
+- Se `modoSimulacao`, usar `mediaFaturamento * 12` como RBT12; senão usar `rbt12Manual`
+- Fórmula do `dnaTotal`:
+  - `custoFixoPercent + mediaCartao + voucher + impostos + (isFranquia ? franquia : 0)`
+- Remover `royalties` e `marketing` do cálculo
 
-### 2. `src/lib/simplesNacionalCalc.ts` — Tabelas e cálculo
+No `initialState`: ajustar defaults (remover royalties/marketing, adicionar franquia: 0, isFranquia: false)
 
-- Cadastrar as 6 faixas do Anexo I (conforme especificação)
-- Estrutura preparada para anexos II-V (tabelas futuras, por enquanto só Anexo I)
-- Função `calcularImpostoSimples(faturamentoMensal, rbt12, anexo)` que retorna:
-  - `faixa` (descrição da faixa enquadrada)
-  - `aliquotaNominal` (%)
-  - `parcelaADeduzir` (R$)
-  - `aliquotaEfetiva` (%) = `((RBT12 × alíqNom) - dedução) / RBT12`
-  - `impostoMensal` (R$) = `faturamento × alíqEfetiva`
-  - `alertas` (array de strings para erros/avisos)
+### 3. `src/pages/Financeiro.tsx` — Redesenhar aba "DNA da Empresa"
 
-### 3. `src/contexts/AppContext.tsx` — State e integração
+Layout da aba:
+- **Card educativo no topo**: "O DNA da empresa é o custo estrutural percentual mínimo que cada produto precisa suportar antes do lucro."
+- **Campos automáticos** (read-only com destaque):
+  - Custo Fixo (%) — da média 12 meses
+  - Média Cartão (%) — (débito + crédito) / 2
+  - Impostos (%) — alíquota efetiva do Simples
+- **Campos manuais**:
+  - Taxa Débito (%)
+  - Taxa Crédito (%)
+  - Voucher (%)
+- **Toggle**: "A empresa é franquia?" (sim/não)
+  - Se sim, mostrar campo Franquia (%)
+- **Resultado final** com destaque:
+  - DNA da Empresa (%) com breakdown visual
+  - Fórmula exibida
+- **Mensagem de apoio**: "Todo produto precisa conter no mínimo o DNA da empresa embutido no preço. Esse percentual cobre a estrutura do negócio antes mesmo do lucro."
 
-- Adicionar `simplesNacional` ao `initialState` com valores zerados e `modoSimulacao: false`
-- Adicionar action `SET_SIMPLES_NACIONAL`
-- No `loadState`, merge seguro com fallback
-- O imposto calculado deve poder alimentar `dnaEmpresa.impostos` automaticamente (alíquota efetiva)
+### 4. Demais páginas — Limpar referências a royalties/marketing
 
-### 4. `src/pages/Financeiro.tsx` — Nova aba "Impostos"
-
-Adicionar 5ª tab **"Impostos"** com:
-
-**Configuração:**
-- Select do Anexo (I a V, default vazio com alerta)
-- Toggle modo simulação (on/off)
-- Input RBT12 manual (desabilitado no modo simulação)
-- Input faturamento mensal (pode puxar da média do faturamento cadastrado)
-
-**Resultado automático:**
-- Faixa enquadrada
-- Alíquota nominal (%)
-- Parcela a deduzir (R$)
-- **Alíquota efetiva (%)** — destaque visual
-- **Imposto do mês (R$)** — destaque visual
-
-**Card educativo:** explicando que a alíquota usada não é a nominal da faixa, e sim a efetiva.
-
-**Alertas:** anexo não definido, RBT12 vazio, faturamento zero.
-
-**Tabela de referência:** exibir a tabela completa do anexo selecionado para consulta.
-
-### 5. Integração com DRE e Mini-DRE
-
-- No DRE (`src/pages/DREAnual.tsx`): a linha de Impostos pode usar a alíquota efetiva do Simples quando configurado (ou manter o % manual do DRE — deixar configurável)
-- No Mini-DRE (`src/pages/MiniDRE.tsx`): usar a alíquota efetiva do Simples no cálculo de impostos por produto, quando disponível
-
-### 6. `src/components/AppSidebar.tsx` — Sem alteração
-
-Impostos é uma aba dentro do Financeiro, não uma página nova.
+- `src/pages/Dashboard.tsx`, `src/pages/PainelMetas.tsx`, `src/pages/Precificacao.tsx`, `src/pages/MiniDRE.tsx` — ajustar onde `dnaTotal` ou campos removidos forem usados
 
 ## Arquivos afetados
 
-- `src/types/index.ts` — novos tipos SimplesNacional
-- `src/lib/simplesNacionalCalc.ts` — novo arquivo com tabelas e cálculo
-- `src/contexts/AppContext.tsx` — novo state e action
-- `src/pages/Financeiro.tsx` — nova aba Impostos
-- `src/pages/DREAnual.tsx` — integração opcional da alíquota efetiva
-- `src/pages/MiniDRE.tsx` — integração opcional da alíquota efetiva
+- `src/types/index.ts`
+- `src/contexts/AppContext.tsx`
+- `src/pages/Financeiro.tsx`
+- `src/pages/Dashboard.tsx` (se referencia royalties/marketing)
+- `src/pages/Precificacao.tsx` (se referencia royalties/marketing)
+- `src/pages/MiniDRE.tsx` (se referencia royalties/marketing)
 
