@@ -198,6 +198,7 @@ export interface AppState {
   fechamentos: FechamentoDia[];
   itensCardapio: ItemCardapio[];
   itensManipulados: ItemManipulado[];
+  custosInvisiveis: CustosInvisiveis;
   dre: DREState;
   diagnosticoRespostas: DiagnosticoResposta[];
 }
