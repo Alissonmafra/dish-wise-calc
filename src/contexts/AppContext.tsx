@@ -140,10 +140,10 @@ const initialState: AppState = recompute({
     taxaDebito: 2,
     taxaCredito: 5,
     mediaCartao: 3.5,
-    impostos: 7,
-    royalties: 0,
-    marketing: 2,
+    impostos: 0,
     voucher: 3,
+    franquia: 0,
+    isFranquia: false,
   },
   insumos: [
     { id: 'ins1', nome: 'Carne Bovina (Blend)', quantidadeComprada: 1000, unidade: 'g', precoPago: 35, percentualPerda: 10, quantidadeReal: 0, precoReal: 0, custoPorUnidade: 0 },
