@@ -231,7 +231,15 @@ function reducer(state: AppState, action: Action): AppState {
 function loadState(): AppState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return recompute({ ...initialState, ...JSON.parse(saved) });
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return recompute({
+        ...initialState,
+        ...parsed,
+        dre: parsed.dre ? { ...initialState.dre, ...parsed.dre, percentuais: { ...initialState.dre.percentuais, ...(parsed.dre?.percentuais || {}) } } : initialState.dre,
+        diagnosticoRespostas: parsed.diagnosticoRespostas || [],
+      });
+    }
   } catch {}
   return initialState;
 }
