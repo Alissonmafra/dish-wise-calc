@@ -49,12 +49,21 @@ function recompute(state: AppState): AppState {
   const produtos = state.produtos.map(p => computeProdutoCMV(p, insumos, receitas));
   const combos = state.combos.map(c => computeComboCMV(c, produtos));
 
-  const totalDespesas = state.despesasFixas.reduce((s, d) => s + d.valor, 0);
-  const mesesDespesas = new Set(state.despesasFixas.map(d => d.mes)).size || 1;
-  const mediaDespesas = totalDespesas / mesesDespesas;
-  const fatValues = state.faturamento.filter(f => f.valor > 0);
-  const mediaFat = fatValues.length > 0 ? fatValues.reduce((s, f) => s + f.valor, 0) / fatValues.length : 1;
-  const custoFixoPercent = mediaFat > 0 ? (mediaDespesas / mediaFat) * 100 : 0;
+  // Calculate custoFixoPercent per month, then average
+  const despesasPorMes: Record<string, number> = {};
+  for (const d of state.despesasFixas) {
+    despesasPorMes[d.mes] = (despesasPorMes[d.mes] || 0) + d.valor;
+  }
+  const percentuaisMensais: number[] = [];
+  for (const [mes, totalDesp] of Object.entries(despesasPorMes)) {
+    const fat = state.faturamento.find(f => f.mes === mes);
+    if (fat && fat.valor > 0) {
+      percentuaisMensais.push((totalDesp / fat.valor) * 100);
+    }
+  }
+  const custoFixoPercent = percentuaisMensais.length > 0
+    ? percentuaisMensais.reduce((s, v) => s + v, 0) / percentuaisMensais.length
+    : 0;
 
   return {
     ...state,
