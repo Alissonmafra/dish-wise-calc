@@ -207,5 +207,6 @@ export interface AppState {
   itensManipulados: ItemManipulado[];
   custosInvisiveis: CustosInvisiveis;
   dre: DREState;
+  simplesNacional: SimplesNacional;
   diagnosticoRespostas: DiagnosticoResposta[];
 }
