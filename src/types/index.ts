@@ -172,6 +172,12 @@ export interface PrecoProduto {
   precoIfood: number | null;
   precoFantasma: number | null;
   precoIfoodFantasma: number | null;
+  // Campos de entrada do simulador (para hidratação)
+  ifoodPct?: number;
+  entrega?: number;
+  cupom?: number;
+  lucroFantasmaInput?: number;
+  cupomFantasma?: number;
 }
 
 export type CanalVenda = 'balcao' | 'delivery' | 'ifood' | 'fantasma';

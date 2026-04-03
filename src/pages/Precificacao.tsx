@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, DollarSign, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, DollarSign, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import type { PrecoProduto } from '@/types';
 
 interface LinhaPV {
   id: string;
@@ -30,20 +31,43 @@ const emptyLinha = (): LinhaPV => ({
   cupomFantasma: '',
 });
 
+const num = (v: number | ''): number => (v === '' ? 0 : v);
+
+/** Converte PrecoProduto salvo → LinhaPV editável */
+function precoToLinha(pp: PrecoProduto): LinhaPV {
+  return {
+    id: crypto.randomUUID(),
+    produtoId: pp.produtoId,
+    lucroEstimado: pp.lucroEstimado || '',
+    ifoodPct: pp.ifoodPct ?? '',
+    entrega: pp.entrega ?? '',
+    cupom: pp.cupom ?? '',
+    lucroFantasma: pp.lucroFantasmaInput ?? '',
+    cupomFantasma: pp.cupomFantasma ?? '',
+  };
+}
+
 export default function Precificacao() {
   const { state, dnaTotal, dispatch } = useApp();
   const produtosComFicha = state.produtos.filter(p => p.cmv > 0);
+  const isInitialMount = useRef(true);
 
-  const [linhas, setLinhas] = useState<LinhaPV[]>([emptyLinha()]);
+  // Hidratar linhas a partir de precosProdutos salvos
+  const [linhas, setLinhas] = useState<LinhaPV[]>(() => {
+    if (state.precosProdutos.length > 0) {
+      return state.precosProdutos.map(precoToLinha);
+    }
+    return [emptyLinha()];
+  });
+
+  const [savedFeedback, setSavedFeedback] = useState(false);
 
   const addLinha = () => setLinhas(prev => [...prev, emptyLinha()]);
   const removeLinha = (id: string) => setLinhas(prev => prev.filter(l => l.id !== id));
   const updateLinha = (id: string, field: keyof LinhaPV, value: string | number) =>
     setLinhas(prev => prev.map(l => (l.id === id ? { ...l, [field]: value } : l)));
 
-  const num = (v: number | ''): number => (v === '' ? 0 : v);
-
-  const calcLinha = (l: LinhaPV) => {
+  const calcLinha = useCallback((l: LinhaPV) => {
     const produto = state.produtos.find(p => p.id === l.produtoId);
     const cmv = produto?.cmv ?? 0;
     const dna = dnaTotal / 100;
@@ -58,41 +82,36 @@ export default function Precificacao() {
     const hasLucro = l.lucroEstimado !== '' && l.lucroEstimado > 0;
     const hasLucroFant = l.lucroFantasma !== '' && num(l.lucroFantasma) > 0;
 
-    // Validations
     const pvInvalid = dna + lucroEst >= 1;
     const ifoodInvalid = ifood >= 1;
     const fantInvalid = dna + lucroFant >= 1;
 
-    // PV Normal
     let pv: number | null = null;
     if (hasProduto && hasLucro) {
       pv = pvInvalid ? null : cmv / (1 - dna - lucroEst);
     }
 
-    // PV iFood
     let pvIfood: number | null = null;
     if (pv !== null && !ifoodInvalid) {
       pvIfood = ((pv + entrega) / (1 - ifood)) + cupom;
     }
 
-    // PV Fantasma
     let pvFant: number | null = null;
     if (hasProduto && hasLucroFant) {
       pvFant = fantInvalid ? null : cmv / (1 - dna - lucroFant);
     }
 
-    // PV iFood Fantasma
     let pvIfoodFant: number | null = null;
     if (pvFant !== null && !ifoodInvalid) {
       pvIfoodFant = ((pvFant + entrega) / (1 - ifood)) + cupomFant;
     }
 
     return { cmv, pv, pvIfood, pvFant, pvIfoodFant, pvInvalid, ifoodInvalid, fantInvalid, hasProduto, hasLucro, hasLucroFant };
-  };
+  }, [state.produtos, dnaTotal]);
 
-  // Auto-salvar preços no estado global
-  useEffect(() => {
-    const precos = linhas
+  /** Monta lista de PrecoProduto a partir das linhas atuais */
+  const buildPrecos = useCallback((): PrecoProduto[] => {
+    return linhas
       .map(l => {
         const c = calcLinha(l);
         if (!c.hasProduto || c.pv === null) return null;
@@ -103,16 +122,43 @@ export default function Precificacao() {
           precoIfood: c.pvIfood,
           precoFantasma: c.pvFant,
           precoIfoodFantasma: c.pvIfoodFant,
-        };
+          // Salvar inputs para hidratação futura
+          ifoodPct: num(l.ifoodPct) || undefined,
+          entrega: num(l.entrega) || undefined,
+          cupom: num(l.cupom) || undefined,
+          lucroFantasmaInput: num(l.lucroFantasma) || undefined,
+          cupomFantasma: num(l.cupomFantasma) || undefined,
+        } as PrecoProduto;
       })
-      .filter(Boolean) as any[];
-    if (precos.length > 0) {
-      const existing = state.precosProdutos.filter(
-        pp => !precos.some((np: any) => np.produtoId === pp.produtoId)
-      );
-      dispatch({ type: 'SET_PRECOS_PRODUTOS', payload: [...existing, ...precos] });
+      .filter(Boolean) as PrecoProduto[];
+  }, [linhas, calcLinha]);
+
+  // Auto-salvar preços no estado global quando linhas mudam
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
     }
-  }, [linhas]);
+
+    const precos = buildPrecos();
+    // IDs de produtos presentes na tela
+    const produtoIdsNaTela = linhas
+      .filter(l => !!l.produtoId)
+      .map(l => l.produtoId);
+    // Manter preços de produtos que NÃO estão na tela (editados em outro momento)
+    const mantidos = state.precosProdutos.filter(
+      pp => !produtoIdsNaTela.includes(pp.produtoId)
+    );
+    const novaLista = [...mantidos, ...precos];
+
+    dispatch({ type: 'SET_PRECOS_PRODUTOS', payload: novaLista });
+
+    if (precos.length > 0) {
+      setSavedFeedback(true);
+      const t = setTimeout(() => setSavedFeedback(false), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [linhas, buildPrecos]);
 
   // Médias
   const linhasCalc = linhas.map(l => ({ ...l, calc: calcLinha(l) }));
@@ -182,31 +228,11 @@ export default function Precificacao() {
               Simulador de Preço de Venda
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Button onClick={() => {
-                const precos = linhas
-                  .map(l => {
-                    const c = calcLinha(l);
-                    if (!c.hasProduto || c.pv === null) return null;
-                    return {
-                      produtoId: l.produtoId,
-                      lucroEstimado: num(l.lucroEstimado),
-                      precoVenda: c.pv,
-                      precoIfood: c.pvIfood,
-                      precoFantasma: c.pvFant,
-                      precoIfoodFantasma: c.pvIfoodFant,
-                    };
-                  })
-                  .filter(Boolean) as any[];
-                if (precos.length > 0) {
-                  // Merge with existing: update by produtoId, keep others
-                  const existing = state.precosProdutos.filter(
-                    pp => !precos.some((np: any) => np.produtoId === pp.produtoId)
-                  );
-                  dispatch({ type: 'SET_PRECOS_PRODUTOS', payload: [...existing, ...precos] });
-                }
-              }} variant="outline" size="sm">
-                Salvar Preços
-              </Button>
+              {savedFeedback && (
+                <span className="text-xs text-green-600 flex items-center gap-1 animate-in fade-in">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Preços salvos
+                </span>
+              )}
               <Button onClick={addLinha} size="sm">
                 <Plus className="h-4 w-4 mr-1" /> Adicionar Linha
               </Button>
