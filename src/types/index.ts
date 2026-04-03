@@ -165,6 +165,35 @@ export interface DREState {
   valores: DREValoresMensais;
 }
 
+export interface PrecoProduto {
+  produtoId: string;
+  lucroEstimado: number;
+  precoVenda: number;
+  precoIfood: number | null;
+  precoFantasma: number | null;
+  precoIfoodFantasma: number | null;
+}
+
+export type CanalVenda = 'balcao' | 'delivery' | 'ifood' | 'fantasma';
+
+export interface VendaDia {
+  id: string;
+  data: string;
+  produtoId: string;
+  nomeProduto: string;
+  canal: CanalVenda;
+  quantidade: number;
+  precoUnitario: number;
+  cmvUnitario: number;
+  dnaPercent: number;
+  faturamentoBruto: number;
+  custoTotalProduto: number;
+  custoVariavelUnitario: number;
+  custoVariavelTotal: number;
+  lucroUnitario: number;
+  lucroTotal: number;
+}
+
 export interface DiagnosticoResposta {
   id: string;
   resposta: string;
