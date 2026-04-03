@@ -34,13 +34,10 @@ export default function VendasDoDia() {
   const [canal, setCanal] = useState<CanalVenda>('balcao');
   const [quantidade, setQuantidade] = useState<number | ''>('');
 
-  // Products with ficha técnica AND saved PV
+  // Products with ficha técnica (CMV > 0) — PV salvo é opcional
   const produtosDisponiveis = useMemo(() => {
-    return state.produtos.filter(p => {
-      if (p.cmv <= 0) return false;
-      return state.precosProdutos.some(pp => pp.produtoId === p.id && pp.precoVenda > 0);
-    });
-  }, [state.produtos, state.precosProdutos]);
+    return state.produtos.filter(p => p.cmv > 0);
+  }, [state.produtos]);
 
   const getPrecoByCanal = (produtoId: string, canal: CanalVenda): number => {
     const pp = state.precosProdutos.find(p => p.produtoId === produtoId);
