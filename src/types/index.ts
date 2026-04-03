@@ -219,5 +219,7 @@ export interface AppState {
   custosInvisiveis: CustosInvisiveis;
   dre: DREState;
   simplesNacional: SimplesNacional;
+  precosProdutos: PrecoProduto[];
+  vendas: VendaDia[];
   diagnosticoRespostas: DiagnosticoResposta[];
 }
