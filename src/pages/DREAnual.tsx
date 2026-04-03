@@ -202,7 +202,12 @@ export default function DREAnual() {
               <thead>
                 <tr className="bg-muted">
                   <th className="text-left p-2 sticky left-0 bg-muted z-10 min-w-[220px]">Linha</th>
-                  {MESES.map(m => <th key={m} className="p-2 text-center min-w-[90px]">{m}</th>)}
+                  {MESES.map((m, mi) => <th key={m} className="p-2 text-center min-w-[90px]">
+                    <div>{m}</div>
+                    <Button variant="ghost" size="icon" className="h-5 w-5 mt-0.5" title="Importar de Vendas" onClick={() => importarVendas(mi)}>
+                      <Download className="h-3 w-3" />
+                    </Button>
+                  </th>)}
                   <th className="p-2 text-center min-w-[100px]">Total Ano</th>
                   <th className="p-2 text-center min-w-[70px]">% Fat</th>
                 </tr>
