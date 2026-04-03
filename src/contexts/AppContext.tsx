@@ -248,6 +248,10 @@ type Action =
   | { type: 'SET_DRE'; payload: DREState }
   | { type: 'SET_DIAGNOSTICO'; payload: DiagnosticoResposta[] }
   | { type: 'SET_SIMPLES_NACIONAL'; payload: SimplesNacional }
+  | { type: 'SET_PRECOS_PRODUTOS'; payload: PrecoProduto[] }
+  | { type: 'ADD_VENDA'; payload: VendaDia }
+  | { type: 'REMOVE_VENDA'; payload: string }
+  | { type: 'SET_VENDAS'; payload: VendaDia[] }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
