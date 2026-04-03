@@ -229,6 +229,8 @@ const initialState: AppState = recompute({
   },
   simplesNacional: { anexo: 'I', rbt12Manual: 0, modoSimulacao: true },
   diagnosticoRespostas: [],
+  precosProdutos: [],
+  vendas: [],
 });
 
 type Action =
