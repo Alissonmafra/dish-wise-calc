@@ -315,6 +315,8 @@ function loadState(): AppState {
         dre,
         simplesNacional: parsed.simplesNacional ? { ...initialState.simplesNacional, ...parsed.simplesNacional } : initialState.simplesNacional,
         diagnosticoRespostas: parsed.diagnosticoRespostas || [],
+        precosProdutos: Array.isArray(parsed.precosProdutos) ? parsed.precosProdutos : [],
+        vendas: Array.isArray(parsed.vendas) ? parsed.vendas : [],
       });
     }
   } catch (e) {
