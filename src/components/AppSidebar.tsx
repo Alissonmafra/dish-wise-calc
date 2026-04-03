@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, DollarSign, Package, BookOpen, Calculator, Layers, Receipt, ClipboardList, ChefHat, TrendingUp, BarChart3, Target, PieChart, Stethoscope,
+  LayoutDashboard, DollarSign, Package, BookOpen, Calculator, Layers, Receipt, ClipboardList, ChefHat, TrendingUp, BarChart3, Target, PieChart, Stethoscope, ShoppingCart,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -19,6 +19,7 @@ const items = [
   { title: 'Lucro Atual', url: '/lucro-atual', icon: TrendingUp },
   { title: 'Preço de Venda (PV)', url: '/precificacao', icon: Calculator },
   { title: 'Combos', url: '/combos', icon: Layers },
+  { title: 'Vendas do Dia', url: '/vendas', icon: ShoppingCart },
   { title: 'Fechamento', url: '/fechamento', icon: Receipt },
   { title: 'DRE Anual', url: '/dre', icon: BarChart3 },
   { title: 'Painel de Metas', url: '/painel-metas', icon: Target },
