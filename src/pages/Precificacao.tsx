@@ -31,7 +31,7 @@ const emptyLinha = (): LinhaPV => ({
 });
 
 export default function Precificacao() {
-  const { state, dnaTotal } = useApp();
+  const { state, dnaTotal, dispatch } = useApp();
   const produtosComFicha = state.produtos.filter(p => p.cmv > 0);
 
   const [linhas, setLinhas] = useState<LinhaPV[]>([emptyLinha()]);
