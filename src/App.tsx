@@ -21,6 +21,7 @@ import DREAnual from "./pages/DREAnual";
 import PainelMetas from "./pages/PainelMetas";
 import MiniDRE from "./pages/MiniDRE";
 import Diagnostico from "./pages/Diagnostico";
+import VendasDoDia from "./pages/VendasDoDia";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
