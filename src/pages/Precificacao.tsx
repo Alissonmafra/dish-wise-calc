@@ -90,6 +90,30 @@ export default function Precificacao() {
     return { cmv, pv, pvIfood, pvFant, pvIfoodFant, pvInvalid, ifoodInvalid, fantInvalid, hasProduto, hasLucro, hasLucroFant };
   };
 
+  // Auto-salvar preços no estado global
+  useEffect(() => {
+    const precos = linhas
+      .map(l => {
+        const c = calcLinha(l);
+        if (!c.hasProduto || c.pv === null) return null;
+        return {
+          produtoId: l.produtoId,
+          lucroEstimado: num(l.lucroEstimado),
+          precoVenda: c.pv,
+          precoIfood: c.pvIfood,
+          precoFantasma: c.pvFant,
+          precoIfoodFantasma: c.pvIfoodFant,
+        };
+      })
+      .filter(Boolean) as any[];
+    if (precos.length > 0) {
+      const existing = state.precosProdutos.filter(
+        pp => !precos.some((np: any) => np.produtoId === pp.produtoId)
+      );
+      dispatch({ type: 'SET_PRECOS_PRODUTOS', payload: [...existing, ...precos] });
+    }
+  }, [linhas]);
+
   // Médias
   const linhasCalc = linhas.map(l => ({ ...l, calc: calcLinha(l) }));
   const lucrosValidos = linhasCalc.filter(l => l.lucroEstimado !== '' && num(l.lucroEstimado) > 0);
