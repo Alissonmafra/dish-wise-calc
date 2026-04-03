@@ -166,6 +166,31 @@ export default function DREAnual() {
     dispatch({ type: 'SET_DRE', payload: { valores: { ...vals, [key]: arr } } });
   };
 
+  const importarVendas = useCallback((month: number) => {
+    const mesStr = `${new Date().getFullYear()}-${String(month + 1).padStart(2, '0')}`;
+    const vendasMes = state.vendas.filter(v => v.data.startsWith(mesStr));
+    if (vendasMes.length === 0) return;
+
+    const fatBruto = vendasMes.reduce((s, v) => s + v.faturamentoBruto, 0);
+    const ingredientes = vendasMes.reduce((s, v) => s + v.custoTotalProduto, 0);
+    const dna = state.dnaEmpresa;
+    const impostos = fatBruto * (dna.impostos / 100);
+    const taxaMaq = fatBruto * (dna.mediaCartao / 100);
+
+    const newVals = { ...vals };
+    const update = (key: string, val: number) => {
+      const arr = [...(newVals[key] || Array(12).fill(0))];
+      arr[month] = val;
+      newVals[key] = arr;
+    };
+    update('fatBruto', fatBruto);
+    update('ingredientes', ingredientes);
+    update('impostos', impostos);
+    update('taxaMaquininha', taxaMaq);
+
+    dispatch({ type: 'SET_DRE', payload: { valores: newVals } });
+  }, [state.vendas, state.dnaEmpresa, vals, dispatch]);
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-foreground">DRE Anual</h1>
