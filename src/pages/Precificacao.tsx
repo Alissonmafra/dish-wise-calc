@@ -157,9 +157,36 @@ export default function Precificacao() {
               <DollarSign className="h-5 w-5" />
               Simulador de Preço de Venda
             </CardTitle>
-            <Button onClick={addLinha} size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Adicionar Linha
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => {
+                const precos = linhas
+                  .map(l => {
+                    const c = calcLinha(l);
+                    if (!c.hasProduto || c.pv === null) return null;
+                    return {
+                      produtoId: l.produtoId,
+                      lucroEstimado: num(l.lucroEstimado),
+                      precoVenda: c.pv,
+                      precoIfood: c.pvIfood,
+                      precoFantasma: c.pvFant,
+                      precoIfoodFantasma: c.pvIfoodFant,
+                    };
+                  })
+                  .filter(Boolean) as any[];
+                if (precos.length > 0) {
+                  // Merge with existing: update by produtoId, keep others
+                  const existing = state.precosProdutos.filter(
+                    pp => !precos.some((np: any) => np.produtoId === pp.produtoId)
+                  );
+                  dispatch({ type: 'SET_PRECOS_PRODUTOS', payload: [...existing, ...precos] });
+                }
+              }} variant="outline" size="sm">
+                Salvar Preços
+              </Button>
+              <Button onClick={addLinha} size="sm">
+                <Plus className="h-4 w-4 mr-1" /> Adicionar Linha
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
