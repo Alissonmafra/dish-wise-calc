@@ -290,7 +290,7 @@ export default function Ofertas() {
   }
 
   function updateOfertaStatus(id: string, status: 'ativa' | 'teste' | 'arquivada') {
-    const oferta = state.ofertas.find(o => o.id === id);
+    const oferta = (state.ofertas || []).find(o => o.id === id);
     if (oferta) dispatch({ type: 'UPDATE_OFERTA', payload: { ...oferta, status } });
   }
 
