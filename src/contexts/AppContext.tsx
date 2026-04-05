@@ -285,6 +285,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'ADD_OFERTA': return { ...state, ofertas: [...state.ofertas, action.payload] };
     case 'UPDATE_OFERTA': return { ...state, ofertas: state.ofertas.map(o => o.id === action.payload.id ? action.payload : o) };
     case 'REMOVE_OFERTA': return { ...state, ofertas: state.ofertas.filter(o => o.id !== action.payload) };
+    case 'SET_QUADRANTES_OFERTAS': return { ...state, quadrantesOfertas: action.payload };
     case 'LOAD_STATE': return recompute(action.payload);
     default: return state;
   }
