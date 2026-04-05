@@ -258,6 +258,7 @@ type Action =
   | { type: 'ADD_OFERTA'; payload: Oferta }
   | { type: 'UPDATE_OFERTA'; payload: Oferta }
   | { type: 'REMOVE_OFERTA'; payload: string }
+  | { type: 'SET_QUADRANTES_OFERTAS'; payload: QuadrantesOfertas }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
