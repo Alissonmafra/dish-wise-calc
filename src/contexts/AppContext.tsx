@@ -279,6 +279,10 @@ function reducer(state: AppState, action: Action): AppState {
     case 'ADD_VENDA': return { ...state, vendas: [...state.vendas, action.payload] };
     case 'REMOVE_VENDA': return { ...state, vendas: state.vendas.filter(v => v.id !== action.payload) };
     case 'SET_VENDAS': return { ...state, vendas: action.payload };
+    case 'SET_OFERTAS': return { ...state, ofertas: action.payload };
+    case 'ADD_OFERTA': return { ...state, ofertas: [...state.ofertas, action.payload] };
+    case 'UPDATE_OFERTA': return { ...state, ofertas: state.ofertas.map(o => o.id === action.payload.id ? action.payload : o) };
+    case 'REMOVE_OFERTA': return { ...state, ofertas: state.ofertas.filter(o => o.id !== action.payload) };
     case 'LOAD_STATE': return recompute(action.payload);
     default: return state;
   }
