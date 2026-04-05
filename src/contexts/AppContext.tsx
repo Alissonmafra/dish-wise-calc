@@ -326,6 +326,7 @@ function loadState(): AppState {
         diagnosticoRespostas: parsed.diagnosticoRespostas || [],
         precosProdutos: Array.isArray(parsed.precosProdutos) ? parsed.precosProdutos : [],
         vendas: Array.isArray(parsed.vendas) ? parsed.vendas : [],
+        ofertas: Array.isArray(parsed.ofertas) ? parsed.ofertas : [],
       });
     }
   } catch (e) {
