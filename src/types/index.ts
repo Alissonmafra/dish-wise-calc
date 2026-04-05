@@ -249,4 +249,5 @@ export interface AppState {
   precosProdutos: PrecoProduto[];
   vendas: VendaDia[];
   diagnosticoRespostas: DiagnosticoResposta[];
+  ofertas: Oferta[];
 }
