@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
-import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis, SimplesNacional, PrecoProduto, VendaDia, Oferta } from '@/types';
+import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis, SimplesNacional, PrecoProduto, VendaDia, Oferta, QuadrantesOfertas } from '@/types';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
 import { calcularImpostoSimples } from '@/lib/simplesNacionalCalc';
 
