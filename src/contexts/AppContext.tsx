@@ -253,6 +253,10 @@ type Action =
   | { type: 'ADD_VENDA'; payload: VendaDia }
   | { type: 'REMOVE_VENDA'; payload: string }
   | { type: 'SET_VENDAS'; payload: VendaDia[] }
+  | { type: 'SET_OFERTAS'; payload: Oferta[] }
+  | { type: 'ADD_OFERTA'; payload: Oferta }
+  | { type: 'UPDATE_OFERTA'; payload: Oferta }
+  | { type: 'REMOVE_OFERTA'; payload: string }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
