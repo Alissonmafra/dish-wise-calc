@@ -232,6 +232,13 @@ export interface SimplesNacional {
   modoSimulacao: boolean;
 }
 
+export interface QuadrantesOfertas {
+  maisVendidos: string[];
+  menosVendidos: string[];
+  maisLucrativos: string[];
+  menosLucrativos: string[];
+}
+
 export interface AppState {
   despesasFixas: DespesaFixa[];
   faturamento: FaturamentoMensal[];
@@ -250,4 +257,5 @@ export interface AppState {
   vendas: VendaDia[];
   diagnosticoRespostas: DiagnosticoResposta[];
   ofertas: Oferta[];
+  quadrantesOfertas: QuadrantesOfertas;
 }

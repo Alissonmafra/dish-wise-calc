@@ -9,10 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import {
-  TrendingUp, TrendingDown, Star, AlertTriangle, Zap, Target, Gift, Trash2, Archive, Play, FlaskConical,
+  TrendingUp, TrendingDown, Star, AlertTriangle, Zap, Target, Gift, Trash2, Archive, Play, FlaskConical, Plus,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Oferta, ProdutoCardapio } from '@/types';
+import type { Oferta, QuadrantesOfertas } from '@/types';
 
 /* ───── helpers ───── */
 type Periodo = 'hoje' | '7d' | '15d' | '30d' | 'mes' | 'custom';
@@ -55,7 +55,6 @@ function psychologicalPrices(base: number): number[] {
       if (price > 0 && Math.abs(price - base) <= 5) candidates.push(price);
     }
   }
-  // Also add direct endings on the base integer
   const baseInt = Math.floor(base);
   for (const e of endings) {
     const p = baseInt - (baseInt % 10) + e;
@@ -72,11 +71,19 @@ export default function Ofertas() {
   const { state, dispatch, dnaTotal } = useApp();
   const dnaDecimal = dnaTotal / 100;
 
+  const quadrantes = state.quadrantesOfertas || { maisVendidos: [], menosVendidos: [], maisLucrativos: [], menosLucrativos: [] };
+
   const [periodo, setPeriodo] = useState<Periodo>('30d');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [activeTab, setActiveTab] = useState('quadrantes');
   const [filterStatus, setFilterStatus] = useState<'todas' | 'ativa' | 'teste' | 'arquivada'>('todas');
+
+  // Quadrant add selectors
+  const [addMaisVendidos, setAddMaisVendidos] = useState('');
+  const [addMenosVendidos, setAddMenosVendidos] = useState('');
+  const [addMaisLucrativos, setAddMaisLucrativos] = useState('');
+  const [addMenosLucrativos, setAddMenosLucrativos] = useState('');
 
   // Offer calculator state
   const [normalProd1, setNormalProd1] = useState('');
@@ -106,24 +113,38 @@ export default function Ofertas() {
     });
   }, [state.produtos, state.precosProdutos, state.vendas, dnaDecimal, periodo, customFrom, customTo]);
 
-  const N = produtosAnalise.length;
-  const quadSize = Math.ceil(N * 0.2) || 1;
+  /* ───── manual quadrant data ───── */
+  const getQuadranteData = useCallback((ids: string[]) => {
+    return ids.map(id => produtosAnalise.find(p => p.id === id)).filter(Boolean) as ProdutoAnalise[];
+  }, [produtosAnalise]);
 
-  const maisVendidos = useMemo(() => [...produtosAnalise].sort((a, b) => b.qtdVendida - a.qtdVendida).slice(0, quadSize), [produtosAnalise, quadSize]);
-  const menosVendidos = useMemo(() => [...produtosAnalise].sort((a, b) => a.qtdVendida - b.qtdVendida).slice(0, quadSize), [produtosAnalise, quadSize]);
-  const maisLucrativos = useMemo(() => [...produtosAnalise].sort((a, b) => b.lucratividade - a.lucratividade).slice(0, quadSize), [produtosAnalise, quadSize]);
-  const menosLucrativos = useMemo(() => [...produtosAnalise].sort((a, b) => a.lucratividade - b.lucratividade).slice(0, quadSize), [produtosAnalise, quadSize]);
+  const maisVendidos = useMemo(() => getQuadranteData(quadrantes.maisVendidos), [getQuadranteData, quadrantes.maisVendidos]);
+  const menosVendidos = useMemo(() => getQuadranteData(quadrantes.menosVendidos), [getQuadranteData, quadrantes.menosVendidos]);
+  const maisLucrativos = useMemo(() => getQuadranteData(quadrantes.maisLucrativos), [getQuadranteData, quadrantes.maisLucrativos]);
+  const menosLucrativos = useMemo(() => getQuadranteData(quadrantes.menosLucrativos), [getQuadranteData, quadrantes.menosLucrativos]);
 
   const mediaLucroMaisVendidos = useMemo(() => {
     if (maisVendidos.length === 0) return 0;
     return maisVendidos.reduce((s, p) => s + p.lucratividade, 0) / maisVendidos.length;
   }, [maisVendidos]);
 
+  /* ───── quadrant mutations ───── */
+  function addToQuadrante(key: keyof QuadrantesOfertas, produtoId: string) {
+    if (!produtoId || quadrantes[key].includes(produtoId)) return;
+    const updated = { ...quadrantes, [key]: [...quadrantes[key], produtoId] };
+    dispatch({ type: 'SET_QUADRANTES_OFERTAS', payload: updated });
+  }
+
+  function removeFromQuadrante(key: keyof QuadrantesOfertas, produtoId: string) {
+    const updated = { ...quadrantes, [key]: quadrantes[key].filter(id => id !== produtoId) };
+    dispatch({ type: 'SET_QUADRANTES_OFERTAS', payload: updated });
+  }
+
   /* ───── cross-quadrant analysis ───── */
-  const maisVendidosIds = new Set(maisVendidos.map(p => p.id));
-  const menosVendidosIds = new Set(menosVendidos.map(p => p.id));
-  const maisLucrativosIds = new Set(maisLucrativos.map(p => p.id));
-  const menosLucrativosIds = new Set(menosLucrativos.map(p => p.id));
+  const maisVendidosIds = new Set(quadrantes.maisVendidos);
+  const menosVendidosIds = new Set(quadrantes.menosVendidos);
+  const maisLucrativosIds = new Set(quadrantes.maisLucrativos);
+  const menosLucrativosIds = new Set(quadrantes.menosLucrativos);
 
   const coringa = produtosAnalise.filter(p => maisVendidosIds.has(p.id) && maisLucrativosIds.has(p.id));
   const perigosos = produtosAnalise.filter(p => maisVendidosIds.has(p.id) && menosLucrativosIds.has(p.id));
@@ -144,10 +165,7 @@ export default function Ofertas() {
     const lucroUsado = Math.ceil(lucroMinPct * 100) / 100;
     const preco = C / (1 - (dnaDecimal + lucroUsado));
     const lucroDinheiro = preco * lucroUsado;
-    return {
-      p1, p2, somaPrecoNormal: p1.pv + p2.pv, cmvTotal: C, lucroMinDinheiro: T,
-      lucroMinPct: lucroUsado * 100, preco, lucroDinheiro,
-    };
+    return { p1, p2, somaPrecoNormal: p1.pv + p2.pv, cmvTotal: C, lucroMinDinheiro: T, lucroMinPct: lucroUsado * 100, preco, lucroDinheiro };
   }
 
   function calcOfertaSubida() {
@@ -160,10 +178,7 @@ export default function Ofertas() {
     if (denom <= 0) return null;
     const preco = C / denom;
     const lucroDinheiro = preco * lucroUsado;
-    return {
-      pFraco, pCoringa, somaPrecoNormal: pFraco.pv + pCoringa.pv, cmvTotal: C,
-      lucroUsadoPct: mediaLucroMaisVendidos, preco, lucroDinheiro,
-    };
+    return { pFraco, pCoringa, somaPrecoNormal: pFraco.pv + pCoringa.pv, cmvTotal: C, lucroUsadoPct: mediaLucroMaisVendidos, preco, lucroDinheiro };
   }
 
   function calcOfertaEscala() {
@@ -178,10 +193,7 @@ export default function Ofertas() {
     if (denom <= 0) return null;
     const preco = C / denom;
     const lucroDinheiro = preco * lucroUsado;
-    return {
-      pCampeao, pCoringa, somaPrecoNormal: pCampeao.pv + pCoringa.pv, cmvTotal: C,
-      lucroMinDinheiro: T, lucroPct: lucroUsado * 100, preco, lucroDinheiro,
-    };
+    return { pCampeao, pCoringa, somaPrecoNormal: pCampeao.pv + pCoringa.pv, cmvTotal: C, lucroMinDinheiro: T, lucroPct: lucroUsado * 100, preco, lucroDinheiro };
   }
 
   function calcOfertaAgressiva() {
@@ -193,14 +205,10 @@ export default function Ofertas() {
     const precoBase = (cmv * agressivaQtd) / denom;
     const lucroDinheiro = precoBase * lucroAlvo;
     const sugestoes = psychologicalPrices(precoBase);
-    // pick best: closest that maintains margin
-    const minPreco = (cmv * agressivaQtd) / (1 - dnaDecimal); // at 0% profit
+    const minPreco = (cmv * agressivaQtd) / (1 - dnaDecimal);
     const validos = sugestoes.filter(p => p >= minPreco);
     const precoPsico = validos.length > 0 ? validos[0] : sugestoes[0];
-    return {
-      cmvUnit: cmv, qtd: agressivaQtd, precoBase, lucroDinheiro,
-      sugestoes: sugestoes.slice(0, 3), precoPsico, lucroAlvoPct: agressivaLucro,
-    };
+    return { cmvUnit: cmv, qtd: agressivaQtd, precoBase, lucroDinheiro, sugestoes: sugestoes.slice(0, 3), precoPsico, lucroAlvoPct: agressivaLucro };
   }
 
   const ofertaNormal = calcOfertaNormal();
@@ -211,10 +219,8 @@ export default function Ofertas() {
   /* ───── auto-suggestions ───── */
   const sugestoes = useMemo(() => {
     const results: Oferta[] = [];
-    const coringaIds = coringa.map(p => p.id);
     const coringaSorted = [...coringa].sort((a, b) => b.lucroDinheiro - a.lucroDinheiro);
 
-    // Normal: top 2 coringas
     if (coringaSorted.length >= 2) {
       const p1 = coringaSorted[0], p2 = coringaSorted[1];
       const C = p1.cmv + p2.cmv;
@@ -237,7 +243,6 @@ export default function Ofertas() {
       }
     }
 
-    // Subida de lucro: worst profitability + best coringa
     if (menosLucrativos.length > 0 && coringaSorted.length > 0) {
       const pFraco = menosLucrativos[0];
       const pCoringa = coringaSorted[0];
@@ -257,7 +262,6 @@ export default function Ofertas() {
       }
     }
 
-    // Escala: campeão de vendas + melhor coringa
     if (maisVendidos.length > 0 && coringaSorted.length > 0) {
       const pCampeao = maisVendidos[0];
       const pCoringa = coringaSorted.find(c => c.id !== pCampeao.id) || coringaSorted[0];
@@ -305,7 +309,11 @@ export default function Ofertas() {
   const filteredOfertas = (state.ofertas || []).filter(o => filterStatus === 'todas' || o.status === filterStatus);
 
   /* ───── render helpers ───── */
-  function QuadranteTable({ title, icon, data, color }: { title: string; icon: React.ReactNode; data: ProdutoAnalise[]; color: string }) {
+  function QuadranteTable({ title, icon, data, quadKey, addValue, setAddValue }: {
+    title: string; icon: React.ReactNode; data: ProdutoAnalise[];
+    quadKey: keyof QuadrantesOfertas; addValue: string; setAddValue: (v: string) => void;
+  }) {
+    const availableProducts = produtosAnalise.filter(p => !quadrantes[quadKey].includes(p.id));
     return (
       <Card>
         <CardHeader className="pb-3">
@@ -313,6 +321,26 @@ export default function Ofertas() {
             {icon}
             {title}
           </CardTitle>
+          <div className="flex items-center gap-2 mt-2">
+            <Select value={addValue} onValueChange={setAddValue}>
+              <SelectTrigger className="flex-1 h-8 text-xs">
+                <SelectValue placeholder="Adicionar produto..." />
+              </SelectTrigger>
+              <SelectContent>
+                {availableProducts.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="outline" className="h-8 px-2" onClick={() => {
+              if (addValue) {
+                addToQuadrante(quadKey, addValue);
+                setAddValue('');
+              }
+            }}>
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -324,11 +352,12 @@ export default function Ofertas() {
                 <TableHead className="text-xs text-right">CMV</TableHead>
                 <TableHead className="text-xs text-right">Lucro R$</TableHead>
                 <TableHead className="text-xs text-right">Lucro %</TableHead>
+                <TableHead className="text-xs w-8"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground text-sm">Sem dados</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground text-sm">Adicione produtos ao quadrante</TableCell></TableRow>
               ) : data.map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="text-sm font-medium">{p.nome}</TableCell>
@@ -337,6 +366,11 @@ export default function Ofertas() {
                   <TableCell className="text-sm text-right">{formatBRL(p.cmv)}</TableCell>
                   <TableCell className="text-sm text-right">{formatBRL(p.lucroDinheiro)}</TableCell>
                   <TableCell className="text-sm text-right">{formatPercent(p.lucratividade)}</TableCell>
+                  <TableCell>
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeFromQuadrante(quadKey, p.id)}>
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -381,7 +415,7 @@ export default function Ofertas() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Página de Ofertas</h1>
-          <p className="text-muted-foreground text-sm">Análise estratégica e geração automática de ofertas</p>
+          <p className="text-muted-foreground text-sm">Análise estratégica e geração de ofertas</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={periodo} onValueChange={v => setPeriodo(v as Periodo)}>
@@ -414,7 +448,6 @@ export default function Ofertas() {
 
         {/* ═══ QUADRANTES ═══ */}
         <TabsContent value="quadrantes" className="space-y-6">
-          {/* DNA & média info */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card>
               <CardContent className="pt-4 text-center">
@@ -430,22 +463,19 @@ export default function Ofertas() {
             </Card>
             <Card>
               <CardContent className="pt-4 text-center">
-                <p className="text-xs text-muted-foreground">Produtos Ativos</p>
-                <p className="text-2xl font-bold">{N}</p>
-                <p className="text-xs text-muted-foreground">20% = {quadSize} por quadrante</p>
+                <p className="text-xs text-muted-foreground">Produtos Cadastrados</p>
+                <p className="text-2xl font-bold">{produtosAnalise.length}</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* 4 quadrants */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <QuadranteTable title="Mais Vendidos" icon={<TrendingUp className="h-4 w-4 text-green-600" />} data={maisVendidos} color="green" />
-            <QuadranteTable title="Menos Vendidos" icon={<TrendingDown className="h-4 w-4 text-red-500" />} data={menosVendidos} color="red" />
-            <QuadranteTable title="Mais Lucrativos" icon={<Star className="h-4 w-4 text-yellow-500" />} data={maisLucrativos} color="yellow" />
-            <QuadranteTable title="Menos Lucrativos" icon={<AlertTriangle className="h-4 w-4 text-orange-500" />} data={menosLucrativos} color="orange" />
+            <QuadranteTable title="Mais Vendidos" icon={<TrendingUp className="h-4 w-4 text-green-600" />} data={maisVendidos} quadKey="maisVendidos" addValue={addMaisVendidos} setAddValue={setAddMaisVendidos} />
+            <QuadranteTable title="Menos Vendidos" icon={<TrendingDown className="h-4 w-4 text-red-500" />} data={menosVendidos} quadKey="menosVendidos" addValue={addMenosVendidos} setAddValue={setAddMenosVendidos} />
+            <QuadranteTable title="Mais Lucrativos" icon={<Star className="h-4 w-4 text-yellow-500" />} data={maisLucrativos} quadKey="maisLucrativos" addValue={addMaisLucrativos} setAddValue={setAddMaisLucrativos} />
+            <QuadranteTable title="Menos Lucrativos" icon={<AlertTriangle className="h-4 w-4 text-orange-500" />} data={menosLucrativos} quadKey="menosLucrativos" addValue={addMenosLucrativos} setAddValue={setAddMenosLucrativos} />
           </div>
 
-          {/* Cross-quadrant */}
           <div>
             <h2 className="text-lg font-semibold mb-3">Produtos Repetidos entre Quadrantes</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -455,7 +485,7 @@ export default function Ofertas() {
               <CrossBadge items={fracos} label="Produtos Fracos (Menos Vendidos + Menos Lucrativos)" icon={<TrendingDown className="h-4 w-4 text-muted-foreground" />} variant="outline" />
             </div>
             {coringa.length === 0 && perigosos.length === 0 && potencialEscala.length === 0 && fracos.length === 0 && (
-              <p className="text-sm text-muted-foreground mt-2">Nenhuma repetição encontrada entre os quadrantes no período selecionado.</p>
+              <p className="text-sm text-muted-foreground mt-2">Adicione produtos aos quadrantes para ver os cruzamentos.</p>
             )}
           </div>
         </TabsContent>
@@ -470,7 +500,6 @@ export default function Ofertas() {
               <TabsTrigger value="agressiva">Oferta Agressiva</TabsTrigger>
             </TabsList>
 
-            {/* Normal */}
             <TabsContent value="normal" className="space-y-4">
               <Card>
                 <CardHeader><CardTitle className="text-base">Oferta Normal — 2 Produtos Coringa</CardTitle>
@@ -510,7 +539,6 @@ export default function Ofertas() {
               </Card>
             </TabsContent>
 
-            {/* Subida de Lucro */}
             <TabsContent value="subida" className="space-y-4">
               <Card>
                 <CardHeader><CardTitle className="text-base">Oferta Subida de Lucro</CardTitle>
@@ -545,24 +573,10 @@ export default function Ofertas() {
                       })}>Salvar Oferta</Button>
                     </div>
                   )}
-                  {/* Candidatos para subida */}
-                  {menosLucrativos.filter(p => p.lucratividade < mediaLucroMaisVendidos).length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-sm font-medium mb-2">Candidatos para Oferta Subida de Lucro:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {menosLucrativos.filter(p => p.lucratividade < mediaLucroMaisVendidos).map(p => (
-                          <Badge key={p.id} variant="outline" className="cursor-pointer" onClick={() => setSubidaProdFraco(p.id)}>
-                            {p.nome} ({formatPercent(p.lucratividade)})
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* Escala */}
             <TabsContent value="escala" className="space-y-4">
               <Card>
                 <CardHeader><CardTitle className="text-base">Oferta Escala de Vendas</CardTitle>
@@ -602,7 +616,6 @@ export default function Ofertas() {
               </Card>
             </TabsContent>
 
-            {/* Agressiva */}
             <TabsContent value="agressiva" className="space-y-4">
               <Card>
                 <CardHeader><CardTitle className="text-base">Oferta Agressiva</CardTitle>
@@ -672,7 +685,7 @@ export default function Ofertas() {
           <h2 className="text-lg font-semibold">Sugestões Automáticas de Oferta</h2>
           {sugestoes.length === 0 ? (
             <Card><CardContent className="py-8 text-center text-muted-foreground">
-              Cadastre produtos, preços e vendas para receber sugestões automáticas.
+              Preencha os quadrantes com produtos para receber sugestões automáticas.
             </CardContent></Card>
           ) : sugestoes.map(s => (
             <Card key={s.id}>

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
-import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis, SimplesNacional, PrecoProduto, VendaDia, Oferta } from '@/types';
+import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis, SimplesNacional, PrecoProduto, VendaDia, Oferta, QuadrantesOfertas } from '@/types';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
 import { calcularImpostoSimples } from '@/lib/simplesNacionalCalc';
 
@@ -232,6 +232,7 @@ const initialState: AppState = recompute({
   precosProdutos: [],
   vendas: [],
   ofertas: [],
+  quadrantesOfertas: { maisVendidos: [], menosVendidos: [], maisLucrativos: [], menosLucrativos: [] },
 });
 
 type Action =
@@ -257,6 +258,7 @@ type Action =
   | { type: 'ADD_OFERTA'; payload: Oferta }
   | { type: 'UPDATE_OFERTA'; payload: Oferta }
   | { type: 'REMOVE_OFERTA'; payload: string }
+  | { type: 'SET_QUADRANTES_OFERTAS'; payload: QuadrantesOfertas }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -283,6 +285,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'ADD_OFERTA': return { ...state, ofertas: [...state.ofertas, action.payload] };
     case 'UPDATE_OFERTA': return { ...state, ofertas: state.ofertas.map(o => o.id === action.payload.id ? action.payload : o) };
     case 'REMOVE_OFERTA': return { ...state, ofertas: state.ofertas.filter(o => o.id !== action.payload) };
+    case 'SET_QUADRANTES_OFERTAS': return { ...state, quadrantesOfertas: action.payload };
     case 'LOAD_STATE': return recompute(action.payload);
     default: return state;
   }
@@ -327,6 +330,9 @@ function loadState(): AppState {
         precosProdutos: Array.isArray(parsed.precosProdutos) ? parsed.precosProdutos : [],
         vendas: Array.isArray(parsed.vendas) ? parsed.vendas : [],
         ofertas: Array.isArray(parsed.ofertas) ? parsed.ofertas : [],
+        quadrantesOfertas: parsed.quadrantesOfertas
+          ? { ...initialState.quadrantesOfertas, ...parsed.quadrantesOfertas }
+          : initialState.quadrantesOfertas,
       });
     }
   } catch (e) {
