@@ -330,6 +330,9 @@ function loadState(): AppState {
         precosProdutos: Array.isArray(parsed.precosProdutos) ? parsed.precosProdutos : [],
         vendas: Array.isArray(parsed.vendas) ? parsed.vendas : [],
         ofertas: Array.isArray(parsed.ofertas) ? parsed.ofertas : [],
+        quadrantesOfertas: parsed.quadrantesOfertas
+          ? { ...initialState.quadrantesOfertas, ...parsed.quadrantesOfertas }
+          : initialState.quadrantesOfertas,
       });
     }
   } catch (e) {
