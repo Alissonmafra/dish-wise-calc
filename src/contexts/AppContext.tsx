@@ -231,6 +231,7 @@ const initialState: AppState = recompute({
   diagnosticoRespostas: [],
   precosProdutos: [],
   vendas: [],
+  ofertas: [],
 });
 
 type Action =
