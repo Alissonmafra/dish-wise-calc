@@ -290,7 +290,7 @@ export default function Ofertas() {
   }
 
   function updateOfertaStatus(id: string, status: 'ativa' | 'teste' | 'arquivada') {
-    const oferta = state.ofertas.find(o => o.id === id);
+    const oferta = (state.ofertas || []).find(o => o.id === id);
     if (oferta) dispatch({ type: 'UPDATE_OFERTA', payload: { ...oferta, status } });
   }
 
@@ -302,7 +302,7 @@ export default function Ofertas() {
   /* ───── product select options ───── */
   const prodOptions = produtosAnalise.map(p => ({ value: p.id, label: `${p.nome} (${formatBRL(p.pv)})` }));
 
-  const filteredOfertas = state.ofertas.filter(o => filterStatus === 'todas' || o.status === filterStatus);
+  const filteredOfertas = (state.ofertas || []).filter(o => filterStatus === 'todas' || o.status === filterStatus);
 
   /* ───── render helpers ───── */
   function QuadranteTable({ title, icon, data, color }: { title: string; icon: React.ReactNode; data: ProdutoAnalise[]; color: string }) {
