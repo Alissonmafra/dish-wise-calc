@@ -205,6 +205,27 @@ export interface DiagnosticoResposta {
   resposta: string;
 }
 
+export interface Oferta {
+  id: string;
+  tipo: 'normal' | 'subida_lucro' | 'escala_vendas' | 'agressiva';
+  nome: string;
+  produtoIds: string[];
+  nomesProdutos: string[];
+  somaPrecoNormal: number;
+  precoOferta: number;
+  cmvTotal: number;
+  dnaPercent: number;
+  lucroPercent: number;
+  lucroDinheiro: number;
+  objetivoEstrategico: string;
+  status: 'ativa' | 'teste' | 'arquivada';
+  criadoEm: string;
+  cmvUnitario?: number;
+  quantidade?: number;
+  lucroAlvo?: number;
+  precoPsicologico?: number;
+}
+
 export interface SimplesNacional {
   anexo: string; // 'I' | 'II' | 'III' | 'IV' | 'V' | ''
   rbt12Manual: number;
@@ -228,4 +249,5 @@ export interface AppState {
   precosProdutos: PrecoProduto[];
   vendas: VendaDia[];
   diagnosticoRespostas: DiagnosticoResposta[];
+  ofertas: Oferta[];
 }

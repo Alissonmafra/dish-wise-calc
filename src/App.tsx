@@ -22,6 +22,7 @@ import PainelMetas from "./pages/PainelMetas";
 import MiniDRE from "./pages/MiniDRE";
 import Diagnostico from "./pages/Diagnostico";
 import VendasDoDia from "./pages/VendasDoDia";
+import Ofertas from "./pages/Ofertas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/precificacao" element={<Precificacao />} />
               <Route path="/combos" element={<Combos />} />
               <Route path="/vendas" element={<VendasDoDia />} />
+              <Route path="/ofertas" element={<Ofertas />} />
               <Route path="/lucro-atual" element={<LucroAtual />} />
               <Route path="/fechamento" element={<Fechamento />} />
               <Route path="/dre" element={<DREAnual />} />

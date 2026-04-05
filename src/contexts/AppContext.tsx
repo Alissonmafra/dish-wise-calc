@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
-import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis, SimplesNacional, PrecoProduto, VendaDia } from '@/types';
+import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis, SimplesNacional, PrecoProduto, VendaDia, Oferta } from '@/types';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
 import { calcularImpostoSimples } from '@/lib/simplesNacionalCalc';
 
@@ -231,6 +231,7 @@ const initialState: AppState = recompute({
   diagnosticoRespostas: [],
   precosProdutos: [],
   vendas: [],
+  ofertas: [],
 });
 
 type Action =
@@ -252,6 +253,10 @@ type Action =
   | { type: 'ADD_VENDA'; payload: VendaDia }
   | { type: 'REMOVE_VENDA'; payload: string }
   | { type: 'SET_VENDAS'; payload: VendaDia[] }
+  | { type: 'SET_OFERTAS'; payload: Oferta[] }
+  | { type: 'ADD_OFERTA'; payload: Oferta }
+  | { type: 'UPDATE_OFERTA'; payload: Oferta }
+  | { type: 'REMOVE_OFERTA'; payload: string }
   | { type: 'LOAD_STATE'; payload: AppState };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -274,6 +279,10 @@ function reducer(state: AppState, action: Action): AppState {
     case 'ADD_VENDA': return { ...state, vendas: [...state.vendas, action.payload] };
     case 'REMOVE_VENDA': return { ...state, vendas: state.vendas.filter(v => v.id !== action.payload) };
     case 'SET_VENDAS': return { ...state, vendas: action.payload };
+    case 'SET_OFERTAS': return { ...state, ofertas: action.payload };
+    case 'ADD_OFERTA': return { ...state, ofertas: [...state.ofertas, action.payload] };
+    case 'UPDATE_OFERTA': return { ...state, ofertas: state.ofertas.map(o => o.id === action.payload.id ? action.payload : o) };
+    case 'REMOVE_OFERTA': return { ...state, ofertas: state.ofertas.filter(o => o.id !== action.payload) };
     case 'LOAD_STATE': return recompute(action.payload);
     default: return state;
   }
@@ -317,6 +326,7 @@ function loadState(): AppState {
         diagnosticoRespostas: parsed.diagnosticoRespostas || [],
         precosProdutos: Array.isArray(parsed.precosProdutos) ? parsed.precosProdutos : [],
         vendas: Array.isArray(parsed.vendas) ? parsed.vendas : [],
+        ofertas: Array.isArray(parsed.ofertas) ? parsed.ofertas : [],
       });
     }
   } catch (e) {
