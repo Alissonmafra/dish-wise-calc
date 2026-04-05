@@ -1,65 +1,102 @@
 
-Objetivo: corrigir o salvamento do preço em "Preço de Venda (PV)" para que o valor realmente persista e reapareça ao voltar para a tela.
 
-Diagnóstico
-- O estado global já salva `precosProdutos` no `AppContext` e persiste em `localStorage`.
-- O problema principal está na tela `src/pages/Precificacao.tsx`:
-  - ela salva os preços calculados no estado global,
-  - mas as linhas da própria tela (`linhas`) sempre começam vazias com `emptyLinha()`,
-  - então, ao recarregar ou voltar para a página, parece que “não salvou”.
-- Há também um problema de consistência:
-  - o auto-save só roda quando `precos.length > 0`,
-  - então se o usuário limpar um produto ou invalidar um cálculo, o estado antigo pode continuar salvo e ficar desatualizado.
+# Módulo: Página de Ofertas
 
-O que implementar
+## Resumo
 
-1. Hidratar a tela de Precificação com os preços já salvos
-- Em `src/pages/Precificacao.tsx`, inicializar `linhas` a partir de `state.precosProdutos` quando existirem registros.
-- Converter cada `PrecoProduto` salvo em uma `LinhaPV` editável.
-- Se não houver preços salvos, manter a linha vazia padrão.
-- Isso faz o usuário ver novamente o produto e o lucro que já cadastrou.
+Nova tela de análise estratégica que cruza dados de vendas, precificação, CMV e DNA para montar quadrantes de produtos e gerar automaticamente 4 tipos de oferta comercial.
 
-2. Tornar o salvamento automático confiável
-- Extrair a lógica de montagem dos preços para uma função reutilizável.
-- No `useEffect`, atualizar `state.precosProdutos` sempre que `linhas` mudar.
-- Em vez de só salvar quando houver preços válidos, substituir corretamente os preços dos produtos presentes na tela atual.
-- Se uma linha ficar inválida ou for removida, o preço correspondente também deve ser removido/atualizado no estado global, evitando dados “fantasma”.
+## Arquivos a criar/editar
 
-3. Remover duplicidade de lógica
-- Hoje existe a mesma lógica no `useEffect` e no botão “Salvar Preços”.
-- Unificar isso em uma função só para evitar divergência.
-- Depois decidir entre:
-  - manter o botão apenas como ação visual/feedback, ou
-  - remover o botão e deixar só auto-save.
-- Como o comportamento desejado é “salvar ao adicionar no PV”, a melhor UX é auto-save com feedback visual.
+### 1. `src/types/index.ts` — Novos tipos
 
-4. Melhorar feedback para o usuário
-- Mostrar mensagem do tipo “Preço salvo automaticamente” quando houver cálculo válido.
-- Se o produto estiver sem lucro preenchido ou com fórmula inválida, mostrar aviso claro em vez de aparentar falha de salvamento.
-- Isso reduz a sensação de que o sistema “não gravou”.
+```typescript
+export interface Oferta {
+  id: string;
+  tipo: 'normal' | 'subida_lucro' | 'escala_vendas' | 'agressiva';
+  nome: string;
+  produtoIds: string[];
+  nomesProdutos: string[];
+  somaPrecoNormal: number;
+  precoOferta: number;
+  cmvTotal: number;
+  dnaPercent: number;
+  lucroPercent: number;
+  lucroDinheiro: number;
+  objetivoEstrategico: string;
+  status: 'ativa' | 'teste' | 'arquivada';
+  criadoEm: string;
+  // campos extras para agressiva
+  cmvUnitario?: number;
+  quantidade?: number;
+  lucroAlvo?: number;
+  precoPsicologico?: number;
+}
 
-5. Garantir compatibilidade com Vendas do Dia
-- Confirmar que `VendasDoDia.tsx` continue lendo de `state.precosProdutos`.
-- Com a persistência corrigida, o preço salvo no PV passa a aparecer corretamente no lançamento da venda.
+// Adicionar ao AppState:
+// ofertas: Oferta[];
+```
 
-Arquivos afetados
-- `src/pages/Precificacao.tsx` — correção principal
-- `src/contexts/AppContext.tsx` — provavelmente sem mudança estrutural, apenas validar se o fluxo atual já atende
-- `src/pages/VendasDoDia.tsx` — apenas ajuste pequeno se precisar alinhar mensagens/estado vazio
+### 2. `src/contexts/AppContext.tsx` — Estado e actions
 
-Detalhe técnico
-- Criar um mapper entre:
-  - `PrecoProduto` -> `LinhaPV` para hidratação da interface
-  - `LinhaPV` -> `PrecoProduto` para persistência
-- Cuidar especialmente dos campos que não existem no tipo salvo hoje:
-  - `ifoodPct`
-  - `entrega`
-  - `cupom`
-  - `lucroFantasma`
-  - `cupomFantasma`
-- Se esses campos precisarem reaparecer exatamente como o usuário digitou, será necessário ampliar o tipo `PrecoProduto` para salvar também os parâmetros do cálculo, não só os resultados finais.
+- Adicionar `ofertas: []` ao `initialState`
+- Novas actions: `SET_OFERTAS`, `ADD_OFERTA`, `UPDATE_OFERTA`, `REMOVE_OFERTA`
+- Merge defensivo no `loadState`
 
-Resultado esperado
-- Ao cadastrar um produto no PV e preencher o lucro, o preço fica salvo de verdade.
-- Ao sair e voltar para a tela, o produto continua aparecendo na precificação.
-- O módulo Vendas do Dia passa a enxergar esse preço de forma consistente.
+### 3. `src/pages/Ofertas.tsx` — Nova tela (arquivo principal)
+
+**Layout da página:**
+
+1. **Filtro de período** no topo (hoje, 7d, 15d, 30d, mês atual, personalizado)
+
+2. **4 Quadrantes** em grid 2x2:
+   - Cada quadrante mostra `ceil(N * 0.20)` produtos
+   - Q1: Mais Vendidos (ordem desc por qtd vendida)
+   - Q2: Menos Vendidos (ordem asc por qtd vendida)
+   - Q3: Mais Lucrativos (ordem desc por lucratividade %)
+   - Q4: Menos Lucrativos (ordem asc por lucratividade %)
+   - Cada tabela: Nome, Qtd Vendida, PV, CMV, Lucro R$, Lucro %
+
+3. **Média de Lucro dos Mais Vendidos** — card destacado com o valor calculado
+
+4. **Produtos Repetidos entre Quadrantes** — seção com 4 cruzamentos:
+   - Mais Vendidos + Mais Lucrativos → "Produtos Coringa"
+   - Mais Vendidos + Menos Lucrativos → "Produtos Perigosos"
+   - Menos Vendidos + Mais Lucrativos → "Potencial de Escala"
+   - Menos Vendidos + Menos Lucrativos → "Produtos Fracos"
+
+5. **Calculadora de Ofertas** — Tabs com 4 tipos:
+   - **Normal**: selecionar 2 produtos coringa, cálculo automático do lucro mínimo % necessário, preço e validação
+   - **Subida de Lucro**: 1 item menos lucrativo + 1 coringa, lucro = média dos mais vendidos
+   - **Escala de Vendas**: campeão de vendas + coringa, lucro = max(10%, mínimo calculado)
+   - **Agressiva**: campos manuais (nome, CMV unitário, qtd, lucro alvo default 10%), arredondamento psicológico automático (finais .99)
+
+6. **Sugestões Automáticas** — seção que gera automaticamente a melhor oferta de cada tipo usando os dados dos quadrantes
+
+7. **Histórico de Ofertas** — tabela com todas as ofertas salvas, com filtro por status (ativa/teste/arquivada) e ações de editar status/excluir
+
+**Fórmulas implementadas:**
+- Lucro R$ = PV - (PV × DNA%) - CMV
+- Lucratividade % = (Lucro R$ / PV) × 100
+- Preço oferta = (CMV1 + CMV2) / (1 - (DNA + Lucro%))
+- Lucro mínimo % = T × (1 - D) / (C + T)
+- Oferta agressiva: preço = (CMV × qtd) / (1 - (DNA + lucro alvo)), depois arredondamento psicológico
+
+### 4. `src/App.tsx` — Nova rota `/ofertas`
+
+### 5. `src/components/AppSidebar.tsx` — Novo item "Página de Ofertas" com ícone `Gift` ou `Tag`, posicionado após "Vendas do Dia"
+
+## Dados consumidos (somente leitura)
+
+- `state.produtos` → nomes e CMV+embalagem
+- `state.precosProdutos` → preço de venda
+- `state.vendas` → quantidade vendida por período
+- `dnaTotal` → DNA da empresa %
+
+## Observações
+
+- Produtos sem vendas no período aparecem nos quadrantes com qtd = 0
+- Produtos sem PV salvo usam PV = 0 e são sinalizados
+- O histórico de ofertas persiste via localStorage junto com o restante do estado
+- Sugestões automáticas são recalculadas ao mudar o período
+
