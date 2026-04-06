@@ -178,12 +178,15 @@ export default function Ofertas() {
     const pCoringa = findProd(subidaProdCoringa);
     if (!pFraco || !pCoringa) return null;
     const C = pFraco.cmv + pCoringa.cmv;
-    const lucroUsado = mediaLucroMaisVendidos / 100;
+    const lucroSugeridoPct = mediaLucroMaisVendidos;
+    const lucroManual = typeof subidaLucro === 'number' ? subidaLucro : null;
+    const lucroUsadoPct = lucroManual !== null ? lucroManual : lucroSugeridoPct;
+    const lucroUsado = lucroUsadoPct / 100;
     const denom = 1 - (dnaDecimal + lucroUsado);
     if (denom <= 0) return null;
     const preco = C / denom;
     const lucroDinheiro = preco * lucroUsado;
-    return { pFraco, pCoringa, somaPrecoNormal: pFraco.pv + pCoringa.pv, cmvTotal: C, lucroUsadoPct: mediaLucroMaisVendidos, preco, lucroDinheiro };
+    return { pFraco, pCoringa, somaPrecoNormal: pFraco.pv + pCoringa.pv, cmvTotal: C, lucroSugeridoPct, lucroUsadoPct, preco, lucroDinheiro };
   }
 
   function calcOfertaEscala() {
