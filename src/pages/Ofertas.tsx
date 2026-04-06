@@ -96,6 +96,9 @@ export default function Ofertas() {
   const [agressivaCmv, setAgressivaCmv] = useState<number | ''>(0);
   const [agressivaQtd, setAgressivaQtd] = useState(2);
   const [agressivaLucro, setAgressivaLucro] = useState(10);
+  const [normalLucro, setNormalLucro] = useState<number | ''>('');
+  const [subidaLucro, setSubidaLucro] = useState<number | ''>('');
+  const [escalaLucro, setEscalaLucro] = useState<number | ''>(10);
 
   /* ───── build product analysis ───── */
   const produtosAnalise = useMemo<ProdutoAnalise[]>(() => {
@@ -160,12 +163,14 @@ export default function Ofertas() {
     if (!p1 || !p2) return null;
     const C = p1.cmv + p2.cmv;
     const T = Math.max(p1.lucroDinheiro, p2.lucroDinheiro);
-    if (T <= 0) return null;
-    const lucroMinPct = (T * (1 - dnaDecimal)) / (C + T);
-    const lucroUsado = Math.ceil(lucroMinPct * 100) / 100;
-    const preco = C / (1 - (dnaDecimal + lucroUsado));
+    const lucroMinPctCalc = T > 0 ? Math.ceil(((T * (1 - dnaDecimal)) / (C + T)) * 100) / 100 : 0;
+    const lucroManual = typeof normalLucro === 'number' ? normalLucro / 100 : null;
+    const lucroUsado = lucroManual !== null ? lucroManual : lucroMinPctCalc;
+    const denom = 1 - (dnaDecimal + lucroUsado);
+    if (denom <= 0) return null;
+    const preco = C / denom;
     const lucroDinheiro = preco * lucroUsado;
-    return { p1, p2, somaPrecoNormal: p1.pv + p2.pv, cmvTotal: C, lucroMinDinheiro: T, lucroMinPct: lucroUsado * 100, preco, lucroDinheiro };
+    return { p1, p2, somaPrecoNormal: p1.pv + p2.pv, cmvTotal: C, lucroMinDinheiro: T, lucroMinPctSugerido: lucroMinPctCalc * 100, lucroUsadoPct: lucroUsado * 100, preco, lucroDinheiro };
   }
 
   function calcOfertaSubida() {
@@ -173,12 +178,15 @@ export default function Ofertas() {
     const pCoringa = findProd(subidaProdCoringa);
     if (!pFraco || !pCoringa) return null;
     const C = pFraco.cmv + pCoringa.cmv;
-    const lucroUsado = mediaLucroMaisVendidos / 100;
+    const lucroSugeridoPct = mediaLucroMaisVendidos;
+    const lucroManual = typeof subidaLucro === 'number' ? subidaLucro : null;
+    const lucroUsadoPct = lucroManual !== null ? lucroManual : lucroSugeridoPct;
+    const lucroUsado = lucroUsadoPct / 100;
     const denom = 1 - (dnaDecimal + lucroUsado);
     if (denom <= 0) return null;
     const preco = C / denom;
     const lucroDinheiro = preco * lucroUsado;
-    return { pFraco, pCoringa, somaPrecoNormal: pFraco.pv + pCoringa.pv, cmvTotal: C, lucroUsadoPct: mediaLucroMaisVendidos, preco, lucroDinheiro };
+    return { pFraco, pCoringa, somaPrecoNormal: pFraco.pv + pCoringa.pv, cmvTotal: C, lucroSugeridoPct, lucroUsadoPct, preco, lucroDinheiro };
   }
 
   function calcOfertaEscala() {
@@ -188,12 +196,15 @@ export default function Ofertas() {
     const C = pCampeao.cmv + pCoringa.cmv;
     const T = Math.min(pCampeao.lucroDinheiro, pCoringa.lucroDinheiro);
     const lucroMinCalc = T > 0 ? (T * (1 - dnaDecimal)) / (C + T) : 0;
-    const lucroUsado = Math.max(0.10, lucroMinCalc);
+    const lucroSugeridoPct = Math.max(10, lucroMinCalc * 100);
+    const lucroManual = typeof escalaLucro === 'number' ? escalaLucro : null;
+    const lucroUsadoPct = lucroManual !== null ? lucroManual : lucroSugeridoPct;
+    const lucroUsado = lucroUsadoPct / 100;
     const denom = 1 - (dnaDecimal + lucroUsado);
     if (denom <= 0) return null;
     const preco = C / denom;
     const lucroDinheiro = preco * lucroUsado;
-    return { pCampeao, pCoringa, somaPrecoNormal: pCampeao.pv + pCoringa.pv, cmvTotal: C, lucroMinDinheiro: T, lucroPct: lucroUsado * 100, preco, lucroDinheiro };
+    return { pCampeao, pCoringa, somaPrecoNormal: pCampeao.pv + pCoringa.pv, cmvTotal: C, lucroMinDinheiro: T, lucroSugeridoPct, lucroPct: lucroUsadoPct, preco, lucroDinheiro };
   }
 
   function calcOfertaAgressiva() {
@@ -510,13 +521,18 @@ export default function Ofertas() {
                     <ProdSelect value={normalProd1} onChange={setNormalProd1} label="Produto 1 (Coringa)" />
                     <ProdSelect value={normalProd2} onChange={setNormalProd2} label="Produto 2 (Coringa)" />
                   </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Lucro Alvo (%)</label>
+                    <Input type="number" value={normalLucro} onChange={e => setNormalLucro(e.target.value ? Number(e.target.value) : '')} min={0} step={1} placeholder="Ex: 15" className="max-w-[200px]" />
+                    {ofertaNormal && <p className="text-xs text-muted-foreground">Sugerido (lucro mín.): {formatPercent(ofertaNormal.lucroMinPctSugerido)}</p>}
+                  </div>
                   {ofertaNormal && (
                     <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                         <div><span className="text-muted-foreground">Soma normal:</span><br /><strong>{formatBRL(ofertaNormal.somaPrecoNormal)}</strong></div>
                         <div><span className="text-muted-foreground">CMV total:</span><br /><strong>{formatBRL(ofertaNormal.cmvTotal)}</strong></div>
                         <div><span className="text-muted-foreground">Lucro mín. a superar:</span><br /><strong>{formatBRL(ofertaNormal.lucroMinDinheiro)}</strong></div>
-                        <div><span className="text-muted-foreground">Lucro mín. sugerido:</span><br /><strong>{formatPercent(ofertaNormal.lucroMinPct)}</strong></div>
+                        <div><span className="text-muted-foreground">Lucro usado:</span><br /><strong>{formatPercent(ofertaNormal.lucroUsadoPct)}</strong></div>
                       </div>
                       <div className="flex items-center gap-4 text-lg font-bold">
                         <span className="line-through text-muted-foreground">{formatBRL(ofertaNormal.somaPrecoNormal)}</span>
@@ -529,7 +545,7 @@ export default function Ofertas() {
                         nomesProdutos: [ofertaNormal.p1.nome, ofertaNormal.p2.nome],
                         somaPrecoNormal: ofertaNormal.somaPrecoNormal, precoOferta: ofertaNormal.preco,
                         cmvTotal: ofertaNormal.cmvTotal, dnaPercent: dnaTotal,
-                        lucroPercent: ofertaNormal.lucroMinPct, lucroDinheiro: ofertaNormal.lucroDinheiro,
+                        lucroPercent: ofertaNormal.lucroUsadoPct, lucroDinheiro: ofertaNormal.lucroDinheiro,
                         objetivoEstrategico: 'Combinar dois produtos coringa com margem garantida',
                         status: 'teste',
                       })}>Salvar Oferta</Button>
@@ -542,12 +558,17 @@ export default function Ofertas() {
             <TabsContent value="subida" className="space-y-4">
               <Card>
                 <CardHeader><CardTitle className="text-base">Oferta Subida de Lucro</CardTitle>
-                  <CardDescription>Item de menor lucro + coringa. Lucro = média dos mais vendidos ({formatPercent(mediaLucroMaisVendidos)}).</CardDescription>
+                  <CardDescription>Item de menor lucro + coringa.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <ProdSelect value={subidaProdFraco} onChange={setSubidaProdFraco} label="Produto Fraco (Menor Lucro)" />
                     <ProdSelect value={subidaProdCoringa} onChange={setSubidaProdCoringa} label="Produto Coringa" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Lucro Alvo (%)</label>
+                    <Input type="number" value={subidaLucro} onChange={e => setSubidaLucro(e.target.value ? Number(e.target.value) : '')} min={0} step={1} placeholder="Ex: 20" className="max-w-[200px]" />
+                    <p className="text-xs text-muted-foreground">Sugerido (média mais vendidos): {formatPercent(mediaLucroMaisVendidos)}</p>
                   </div>
                   {ofertaSubida && (
                     <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
@@ -580,12 +601,17 @@ export default function Ofertas() {
             <TabsContent value="escala" className="space-y-4">
               <Card>
                 <CardHeader><CardTitle className="text-base">Oferta Escala de Vendas</CardTitle>
-                  <CardDescription>Campeão de vendas + coringa. Lucro mínimo = max(10%, calculado).</CardDescription>
+                  <CardDescription>Campeão de vendas + coringa.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <ProdSelect value={escalaProdCampeao} onChange={setEscalaProdCampeao} label="Campeão de Vendas" />
                     <ProdSelect value={escalaProdCoringa} onChange={setEscalaProdCoringa} label="Produto Coringa" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Lucro Alvo (%)</label>
+                    <Input type="number" value={escalaLucro} onChange={e => setEscalaLucro(e.target.value ? Number(e.target.value) : '')} min={0} step={1} placeholder="Ex: 10" className="max-w-[200px]" />
+                    {ofertaEscala && <p className="text-xs text-muted-foreground">Sugerido: {formatPercent(ofertaEscala.lucroSugeridoPct)}</p>}
                   </div>
                   {ofertaEscala && (
                     <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
