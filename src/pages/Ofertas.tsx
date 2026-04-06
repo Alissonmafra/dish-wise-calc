@@ -558,12 +558,17 @@ export default function Ofertas() {
             <TabsContent value="subida" className="space-y-4">
               <Card>
                 <CardHeader><CardTitle className="text-base">Oferta Subida de Lucro</CardTitle>
-                  <CardDescription>Item de menor lucro + coringa. Lucro = média dos mais vendidos ({formatPercent(mediaLucroMaisVendidos)}).</CardDescription>
+                  <CardDescription>Item de menor lucro + coringa.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <ProdSelect value={subidaProdFraco} onChange={setSubidaProdFraco} label="Produto Fraco (Menor Lucro)" />
                     <ProdSelect value={subidaProdCoringa} onChange={setSubidaProdCoringa} label="Produto Coringa" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Lucro Alvo (%)</label>
+                    <Input type="number" value={subidaLucro} onChange={e => setSubidaLucro(e.target.value ? Number(e.target.value) : '')} min={0} step={1} placeholder="Ex: 20" className="max-w-[200px]" />
+                    <p className="text-xs text-muted-foreground">Sugerido (média mais vendidos): {formatPercent(mediaLucroMaisVendidos)}</p>
                   </div>
                   {ofertaSubida && (
                     <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
