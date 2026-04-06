@@ -521,13 +521,18 @@ export default function Ofertas() {
                     <ProdSelect value={normalProd1} onChange={setNormalProd1} label="Produto 1 (Coringa)" />
                     <ProdSelect value={normalProd2} onChange={setNormalProd2} label="Produto 2 (Coringa)" />
                   </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Lucro Alvo (%)</label>
+                    <Input type="number" value={normalLucro} onChange={e => setNormalLucro(e.target.value ? Number(e.target.value) : '')} min={0} step={1} placeholder="Ex: 15" className="max-w-[200px]" />
+                    {ofertaNormal && <p className="text-xs text-muted-foreground">Sugerido (lucro mín.): {formatPercent(ofertaNormal.lucroMinPctSugerido)}</p>}
+                  </div>
                   {ofertaNormal && (
                     <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                         <div><span className="text-muted-foreground">Soma normal:</span><br /><strong>{formatBRL(ofertaNormal.somaPrecoNormal)}</strong></div>
                         <div><span className="text-muted-foreground">CMV total:</span><br /><strong>{formatBRL(ofertaNormal.cmvTotal)}</strong></div>
                         <div><span className="text-muted-foreground">Lucro mín. a superar:</span><br /><strong>{formatBRL(ofertaNormal.lucroMinDinheiro)}</strong></div>
-                        <div><span className="text-muted-foreground">Lucro mín. sugerido:</span><br /><strong>{formatPercent(ofertaNormal.lucroMinPct)}</strong></div>
+                        <div><span className="text-muted-foreground">Lucro usado:</span><br /><strong>{formatPercent(ofertaNormal.lucroUsadoPct)}</strong></div>
                       </div>
                       <div className="flex items-center gap-4 text-lg font-bold">
                         <span className="line-through text-muted-foreground">{formatBRL(ofertaNormal.somaPrecoNormal)}</span>
@@ -540,7 +545,7 @@ export default function Ofertas() {
                         nomesProdutos: [ofertaNormal.p1.nome, ofertaNormal.p2.nome],
                         somaPrecoNormal: ofertaNormal.somaPrecoNormal, precoOferta: ofertaNormal.preco,
                         cmvTotal: ofertaNormal.cmvTotal, dnaPercent: dnaTotal,
-                        lucroPercent: ofertaNormal.lucroMinPct, lucroDinheiro: ofertaNormal.lucroDinheiro,
+                        lucroPercent: ofertaNormal.lucroUsadoPct, lucroDinheiro: ofertaNormal.lucroDinheiro,
                         objetivoEstrategico: 'Combinar dois produtos coringa com margem garantida',
                         status: 'teste',
                       })}>Salvar Oferta</Button>
