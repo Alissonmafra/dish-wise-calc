@@ -96,6 +96,9 @@ export default function Ofertas() {
   const [agressivaCmv, setAgressivaCmv] = useState<number | ''>(0);
   const [agressivaQtd, setAgressivaQtd] = useState(2);
   const [agressivaLucro, setAgressivaLucro] = useState(10);
+  const [normalLucro, setNormalLucro] = useState<number | ''>('');
+  const [subidaLucro, setSubidaLucro] = useState<number | ''>('');
+  const [escalaLucro, setEscalaLucro] = useState<number | ''>(10);
 
   /* ───── build product analysis ───── */
   const produtosAnalise = useMemo<ProdutoAnalise[]>(() => {
