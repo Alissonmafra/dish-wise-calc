@@ -601,12 +601,17 @@ export default function Ofertas() {
             <TabsContent value="escala" className="space-y-4">
               <Card>
                 <CardHeader><CardTitle className="text-base">Oferta Escala de Vendas</CardTitle>
-                  <CardDescription>Campeão de vendas + coringa. Lucro mínimo = max(10%, calculado).</CardDescription>
+                  <CardDescription>Campeão de vendas + coringa.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <ProdSelect value={escalaProdCampeao} onChange={setEscalaProdCampeao} label="Campeão de Vendas" />
                     <ProdSelect value={escalaProdCoringa} onChange={setEscalaProdCoringa} label="Produto Coringa" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Lucro Alvo (%)</label>
+                    <Input type="number" value={escalaLucro} onChange={e => setEscalaLucro(e.target.value ? Number(e.target.value) : '')} min={0} step={1} placeholder="Ex: 10" className="max-w-[200px]" />
+                    {ofertaEscala && <p className="text-xs text-muted-foreground">Sugerido: {formatPercent(ofertaEscala.lucroSugeridoPct)}</p>}
                   </div>
                   {ofertaEscala && (
                     <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
