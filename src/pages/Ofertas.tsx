@@ -163,12 +163,14 @@ export default function Ofertas() {
     if (!p1 || !p2) return null;
     const C = p1.cmv + p2.cmv;
     const T = Math.max(p1.lucroDinheiro, p2.lucroDinheiro);
-    if (T <= 0) return null;
-    const lucroMinPct = (T * (1 - dnaDecimal)) / (C + T);
-    const lucroUsado = Math.ceil(lucroMinPct * 100) / 100;
-    const preco = C / (1 - (dnaDecimal + lucroUsado));
+    const lucroMinPctCalc = T > 0 ? Math.ceil(((T * (1 - dnaDecimal)) / (C + T)) * 100) / 100 : 0;
+    const lucroManual = typeof normalLucro === 'number' ? normalLucro / 100 : null;
+    const lucroUsado = lucroManual !== null ? lucroManual : lucroMinPctCalc;
+    const denom = 1 - (dnaDecimal + lucroUsado);
+    if (denom <= 0) return null;
+    const preco = C / denom;
     const lucroDinheiro = preco * lucroUsado;
-    return { p1, p2, somaPrecoNormal: p1.pv + p2.pv, cmvTotal: C, lucroMinDinheiro: T, lucroMinPct: lucroUsado * 100, preco, lucroDinheiro };
+    return { p1, p2, somaPrecoNormal: p1.pv + p2.pv, cmvTotal: C, lucroMinDinheiro: T, lucroMinPctSugerido: lucroMinPctCalc * 100, lucroUsadoPct: lucroUsado * 100, preco, lucroDinheiro };
   }
 
   function calcOfertaSubida() {
