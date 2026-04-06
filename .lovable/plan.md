@@ -1,44 +1,32 @@
 
 
-# Quadrantes com Inserção Manual de Produtos
+# Lucro % Manual em Todas as Ofertas
 
 ## Problema
-Atualmente os 4 quadrantes são preenchidos automaticamente com base em vendas e lucratividade. O usuário quer inserir manualmente os produtos em cada quadrante.
+Atualmente, o lucro % é calculado automaticamente em cada tipo de oferta (Normal usa lucro mínimo calculado, Subida usa média dos mais vendidos, Escala usa max(10%, calculado)). O usuário quer digitar manualmente o lucro % para todas as ofertas.
 
 ## Solução
 
-### 1. `src/types/index.ts` — Novo tipo para quadrantes manuais
-Adicionar ao `AppState`:
-```typescript
-quadrantesOfertas: {
-  maisVendidos: string[];    // array de produtoIds
-  menosVendidos: string[];
-  maisLucrativos: string[];
-  menosLucrativos: string[];
-}
-```
+### `src/pages/Ofertas.tsx`
 
-### 2. `src/contexts/AppContext.tsx`
-- Adicionar `quadrantesOfertas` ao estado inicial (4 arrays vazios)
-- Nova action `SET_QUADRANTES_OFERTAS` para persistir os IDs selecionados
-- Merge defensivo no `loadState`
+1. **Adicionar estado para lucro manual** em cada calculadora:
+   - `normalLucro` (número, inicializa vazio ou 0)
+   - `subidaLucro` (número, inicializa com `mediaLucroMaisVendidos` quando disponível)
+   - `escalaLucro` (número, inicializa com 10)
 
-### 3. `src/pages/Ofertas.tsx` — Refatorar quadrantes
-- Remover a lógica automática de ordenação/slice dos 20% (`maisVendidos`, `menosVendidos`, etc.)
-- Cada quadrante passa a ter um **dropdown de seleção de produto** com botão "Adicionar" e botão de remover por item
-- Os produtos selecionados ficam salvos no estado global e persistem ao navegar
-- Os cálculos derivados (cruzamentos, média de lucro, sugestões) continuam funcionando normalmente, usando os produtos dos quadrantes manuais em vez dos automáticos
-- Manter os campos calculados (PV, CMV, Lucro R$, Lucro %) — esses continuam sendo puxados automaticamente dos dados do produto
-- O filtro de período continua existindo para calcular a quantidade vendida de cada produto no período
+2. **Adicionar campo Input de "Lucro (%)"** na UI de cada aba:
+   - Normal: input entre os selects de produto e o resultado
+   - Subida de Lucro: input editável (pré-preenchido com a média dos mais vendidos como sugestão)
+   - Escala de Vendas: input editável (pré-preenchido com 10%)
+   - Agressiva: já tem input manual — sem mudança
 
-### Fluxo do usuário
-1. Seleciona um produto no dropdown do quadrante desejado
-2. Clica "Adicionar" — o produto aparece na tabela do quadrante
-3. Pode remover com botão de lixeira
-4. Os cruzamentos e ofertas se atualizam automaticamente com base nos quadrantes preenchidos
+3. **Refatorar as funções de cálculo** para usar o valor manual:
+   - `calcOfertaNormal()`: usar `normalLucro / 100` em vez do `lucroMinPct` calculado. Manter a exibição do "lucro mínimo sugerido" como referência informativa, mas o cálculo do preço usa o valor digitado.
+   - `calcOfertaSubida()`: usar `subidaLucro / 100` em vez de `mediaLucroMaisVendidos / 100`
+   - `calcOfertaEscala()`: usar `escalaLucro / 100` em vez de `Math.max(0.10, lucroMinCalc)`
 
-### Arquivos afetados
-- `src/types/index.ts`
-- `src/contexts/AppContext.tsx`
-- `src/pages/Ofertas.tsx`
+4. **Manter sugestões automáticas como referência**: mostrar o valor sugerido (lucro mínimo calculado, média dos mais vendidos, etc.) como texto informativo abaixo do input, para que o usuário tenha a referência mas possa ajustar.
+
+### Arquivo afetado
+- `src/pages/Ofertas.tsx` — único arquivo
 
