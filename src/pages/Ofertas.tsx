@@ -196,12 +196,15 @@ export default function Ofertas() {
     const C = pCampeao.cmv + pCoringa.cmv;
     const T = Math.min(pCampeao.lucroDinheiro, pCoringa.lucroDinheiro);
     const lucroMinCalc = T > 0 ? (T * (1 - dnaDecimal)) / (C + T) : 0;
-    const lucroUsado = Math.max(0.10, lucroMinCalc);
+    const lucroSugeridoPct = Math.max(10, lucroMinCalc * 100);
+    const lucroManual = typeof escalaLucro === 'number' ? escalaLucro : null;
+    const lucroUsadoPct = lucroManual !== null ? lucroManual : lucroSugeridoPct;
+    const lucroUsado = lucroUsadoPct / 100;
     const denom = 1 - (dnaDecimal + lucroUsado);
     if (denom <= 0) return null;
     const preco = C / denom;
     const lucroDinheiro = preco * lucroUsado;
-    return { pCampeao, pCoringa, somaPrecoNormal: pCampeao.pv + pCoringa.pv, cmvTotal: C, lucroMinDinheiro: T, lucroPct: lucroUsado * 100, preco, lucroDinheiro };
+    return { pCampeao, pCoringa, somaPrecoNormal: pCampeao.pv + pCoringa.pv, cmvTotal: C, lucroMinDinheiro: T, lucroSugeridoPct, lucroPct: lucroUsadoPct, preco, lucroDinheiro };
   }
 
   function calcOfertaAgressiva() {
