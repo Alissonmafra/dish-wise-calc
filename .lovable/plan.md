@@ -1,33 +1,45 @@
-# Cadastro de Clientes com Aprovação do Admin
+# Corrigir recursão de RLS em `profiles` (bloqueia login do admin)
 
-## Objetivo
-- Permitir auto-cadastro na tela de login (cadastro fica pendente, sem acesso até o admin aprovar).
-- Admin pode cadastrar clientes diretamente (já existe) **ou** aprovar cadastros pendentes.
-- Mostrar/ocultar senha (ícone de olho) em todos os campos de senha.
+## Problema
+As requisições a `profiles` estão retornando **HTTP 500** com:
+`infinite recursion detected in policy for relation "profiles"`.
 
-## Mudanças
+Causa: a policy `admin_all_profiles` faz `SELECT role FROM profiles WHERE id = auth.uid()` **dentro** da própria tabela `profiles`, o que dispara a própria policy de novo → recursão. Mesma coisa em `admin_all_state` (que também consulta `profiles`).
 
-### 1. `src/pages/Login.tsx` — adicionar abas Entrar / Cadastrar
-- Tabs do shadcn: **Entrar** (form atual) e **Cadastrar** (nome do restaurante, email, senha, confirmar senha).
-- Botão de olho (`Eye` / `EyeOff` do lucide) no input de senha, alternando `type` entre `password` e `text`. Aplicar tanto no login quanto no cadastro.
-- Fluxo do cadastro:
-  1. `supabase.auth.signUp({ email, password, options: { data: { nome_restaurante, role: 'cliente', ativo_inicial: false } } })`.
-  2. Imediatamente após o signUp (usuário fica logado), `update profiles set ativo=false where id = user.id`.
-  3. `supabase.auth.signOut()` e exibir toast: *"Cadastro enviado! Aguarde a aprovação do administrador para acessar."*
-- O bloqueio de login para conta inativa já existe no `ProtectedRoute` (`profile.ativo === false` → tela "Acesso suspenso"). Vou ajustar a mensagem para diferenciar **pendente de aprovação** vs **suspenso**, usando um simples texto baseado em `ultimo_acesso === null` (nunca acessou = pendente).
+Como o profile não carrega, `useAuth` deixa `profile = null`, `isAdmin = false`, e o link de Admin nunca aparece / a rota `/admin` redireciona pra `/`.
 
-### 2. `src/pages/AdminPanel.tsx` — destacar pendentes e ação "Aprovar"
-- Adicionar card de resumo **"Pendentes"** (clientes com `ativo=false` e `ultimo_acesso=null`).
-- Na tabela: linha de pendente recebe badge amarelo **"Pendente"** e botão verde **"Aprovar"** (chama o `toggleAtivo` existente).
-- Botão de olho no input de senha do formulário "Criar novo cliente".
-- Filtro/ordem: pendentes aparecem primeiro.
+## Solução: SECURITY DEFINER function + policies reescritas
 
-### 3. Sem mudanças no backend
-- Schema atual já suporta tudo: `profiles.ativo` (default true) + policies.
-- O trigger `handle_new_user` continua criando o profile; a auto-aprovação é desfeita pelo `update` feito no passo 1.2 acima (RLS `own_profile` permite ao próprio usuário atualizar antes do logout).
-- Admin continua criando clientes já ativos via o fluxo atual em `AdminPanel` (não muda).
+Migração SQL:
 
-## Arquivos afetados
-- `src/pages/Login.tsx`
-- `src/pages/AdminPanel.tsx`
-- `src/App.tsx` (apenas ajuste do texto/condicional em `ProtectedRoute` para distinguir "pendente" de "suspenso")
+1. Criar função `public.is_admin(uid uuid)` `SECURITY DEFINER` que lê `profiles.role` sem disparar RLS:
+   ```sql
+   CREATE OR REPLACE FUNCTION public.is_admin(_uid uuid)
+   RETURNS boolean
+   LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+   AS $$ SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = _uid AND role = 'admin') $$;
+   ```
+
+2. `DROP POLICY` das policies recursivas em `profiles` e `app_state` e recriar usando a função:
+   ```sql
+   DROP POLICY IF EXISTS admin_all_profiles ON public.profiles;
+   DROP POLICY IF EXISTS own_profile        ON public.profiles;
+   CREATE POLICY own_profile        ON public.profiles FOR ALL TO authenticated
+     USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+   CREATE POLICY admin_all_profiles ON public.profiles FOR ALL TO authenticated
+     USING (public.is_admin(auth.uid())) WITH CHECK (public.is_admin(auth.uid()));
+
+   DROP POLICY IF EXISTS admin_all_state ON public.app_state;
+   DROP POLICY IF EXISTS own_state       ON public.app_state;
+   CREATE POLICY own_state       ON public.app_state FOR ALL TO authenticated
+     USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+   CREATE POLICY admin_all_state ON public.app_state FOR ALL TO authenticated
+     USING (public.is_admin(auth.uid())) WITH CHECK (public.is_admin(auth.uid()));
+   ```
+
+3. Garantir que o usuário `contato@mafraads.com.br` está marcado como `role = 'admin'` e `ativo = true` em `profiles` (verifico antes; se estiver como `cliente`, faço UPDATE).
+
+## Arquivo afetado
+- Nova migração SQL (sem mudanças em código frontend — o `AdminPanel.tsx` e o link já existem; estão apenas escondidos porque o profile não carrega).
+
+Depois da migração, o login do `contato@mafraads.com.br` carregará o profile com `role='admin'` e o menu/rota `/admin` ficará acessível.
