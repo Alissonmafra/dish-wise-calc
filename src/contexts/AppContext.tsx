@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo, useRef } from 'react';
 import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis, SimplesNacional, PrecoProduto, VendaDia, Oferta, QuadrantesOfertas } from '@/types';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
 import { calcularImpostoSimples } from '@/lib/simplesNacionalCalc';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const STORAGE_KEY = 'precificacao-saas';
 
@@ -61,11 +63,9 @@ function recompute(state: AppState): AppState {
   const produtos = state.produtos.map(p => computeProdutoCMV(p, insumos, receitas));
   const combos = state.combos.map(c => computeComboCMV(c, produtos));
 
-  // Calculate custos invisíveis
   const custosInvCalc = calcularCustosInvisiveis(state.custosInvisiveis);
   const totalInvisiveis = custosInvCalc.total;
 
-  // Calculate custoFixoPercent per month (visíveis + invisíveis), then average
   const despesasPorMes: Record<string, number> = {};
   for (const d of state.despesasFixas) {
     despesasPorMes[d.mes] = (despesasPorMes[d.mes] || 0) + d.valor;
@@ -77,7 +77,6 @@ function recompute(state: AppState): AppState {
       percentuaisMensais.push(((totalDesp + totalInvisiveis) / fat.valor) * 100);
     }
   }
-  // Also include months with faturamento but no despesas visíveis (invisíveis still apply)
   for (const f of state.faturamento) {
     if (f.valor > 0 && !despesasPorMes[f.mes]) {
       percentuaisMensais.push((totalInvisiveis / f.valor) * 100);
@@ -88,10 +87,8 @@ function recompute(state: AppState): AppState {
     : 0;
 
   const composicaoMargem = custoFixoPercent > 33 ? custoFixoPercent - 33 : 0;
-
   const mediaCartao = (state.dnaEmpresa.taxaDebito + state.dnaEmpresa.taxaCredito) / 2;
 
-  // Calculate impostos from Simples Nacional effective rate
   const sn = state.simplesNacional;
   let impostos = state.dnaEmpresa.impostos;
   if (sn.anexo) {
@@ -291,53 +288,47 @@ function reducer(state: AppState, action: Action): AppState {
   }
 }
 
-function loadState(): AppState {
+function mergeLoaded(raw: any): AppState {
+  const mergedDna = { ...initialState.dnaEmpresa, ...(raw.dnaEmpresa || {}) };
+  delete (mergedDna as any).royalties;
+  delete (mergedDna as any).marketing;
+
+  let dre = initialState.dre;
+  if (raw.dre?.valores && typeof raw.dre.valores === 'object') {
+    const mergedValores = { ...initialState.dre.valores };
+    for (const key of Object.keys(raw.dre.valores)) {
+      if (Array.isArray(raw.dre.valores[key])) mergedValores[key] = raw.dre.valores[key];
+    }
+    dre = { valores: mergedValores };
+  }
+
+  return recompute({
+    ...initialState,
+    ...raw,
+    dnaEmpresa: mergedDna,
+    custosInvisiveis: raw.custosInvisiveis
+      ? { ...initialCustosInvisiveis, ...raw.custosInvisiveis,
+          valeTransporte: { ...initialCustosInvisiveis.valeTransporte, ...(raw.custosInvisiveis?.valeTransporte || {}) },
+          brindes: { ...initialCustosInvisiveis.brindes, ...(raw.custosInvisiveis?.brindes || {}) },
+          alimentacao: { ...initialCustosInvisiveis.alimentacao, ...(raw.custosInvisiveis?.alimentacao || {}) } }
+      : initialCustosInvisiveis,
+    dre,
+    simplesNacional: raw.simplesNacional ? { ...initialState.simplesNacional, ...raw.simplesNacional } : initialState.simplesNacional,
+    diagnosticoRespostas: raw.diagnosticoRespostas || [],
+    precosProdutos: Array.isArray(raw.precosProdutos) ? raw.precosProdutos : [],
+    vendas: Array.isArray(raw.vendas) ? raw.vendas : [],
+    ofertas: Array.isArray(raw.ofertas) ? raw.ofertas : [],
+    quadrantesOfertas: raw.quadrantesOfertas
+      ? { ...initialState.quadrantesOfertas, ...raw.quadrantesOfertas }
+      : initialState.quadrantesOfertas,
+  });
+}
+
+function loadFromLocalStorage(): AppState {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const mergedDna = { ...initialState.dnaEmpresa, ...(parsed.dnaEmpresa || {}) };
-      // Remove deprecated fields from old localStorage
-      delete (mergedDna as any).royalties;
-      delete (mergedDna as any).marketing;
-
-      // Migrate old DRE format (percentuais) to new format (valores)
-      let dre = initialState.dre;
-      if (parsed.dre) {
-        if (parsed.dre.valores && typeof parsed.dre.valores === 'object') {
-          // New format — merge with defaults to ensure all keys exist
-          const mergedValores = { ...initialState.dre.valores };
-          for (const key of Object.keys(parsed.dre.valores)) {
-            if (Array.isArray(parsed.dre.valores[key])) {
-              mergedValores[key] = parsed.dre.valores[key];
-            }
-          }
-          dre = { valores: mergedValores };
-        }
-        // Old format with percentuais — discard, use fresh initial state
-      }
-
-      return recompute({
-        ...initialState,
-        ...parsed,
-        dnaEmpresa: mergedDna,
-        custosInvisiveis: parsed.custosInvisiveis
-          ? { ...initialCustosInvisiveis, ...parsed.custosInvisiveis, valeTransporte: { ...initialCustosInvisiveis.valeTransporte, ...(parsed.custosInvisiveis?.valeTransporte || {}) }, brindes: { ...initialCustosInvisiveis.brindes, ...(parsed.custosInvisiveis?.brindes || {}) }, alimentacao: { ...initialCustosInvisiveis.alimentacao, ...(parsed.custosInvisiveis?.alimentacao || {}) } }
-          : initialCustosInvisiveis,
-        dre,
-        simplesNacional: parsed.simplesNacional ? { ...initialState.simplesNacional, ...parsed.simplesNacional } : initialState.simplesNacional,
-        diagnosticoRespostas: parsed.diagnosticoRespostas || [],
-        precosProdutos: Array.isArray(parsed.precosProdutos) ? parsed.precosProdutos : [],
-        vendas: Array.isArray(parsed.vendas) ? parsed.vendas : [],
-        ofertas: Array.isArray(parsed.ofertas) ? parsed.ofertas : [],
-        quadrantesOfertas: parsed.quadrantesOfertas
-          ? { ...initialState.quadrantesOfertas, ...parsed.quadrantesOfertas }
-          : initialState.quadrantesOfertas,
-      });
-    }
+    if (saved) return mergeLoaded(JSON.parse(saved));
   } catch (e) {
-    console.error('Failed to load state from localStorage:', e);
-    // Clear corrupted state
     localStorage.removeItem(STORAGE_KEY);
   }
   return initialState;
@@ -354,11 +345,48 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, null, loadState);
+  const { user, viewingAsUserId } = useAuth();
+  const [state, dispatch] = useReducer(reducer, null, loadFromLocalStorage);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadedRef = useRef<string | null>(null);
 
+  const effectiveUserId = viewingAsUserId || user?.id || null;
+
+  // Load from Supabase when user or viewingAsUserId changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    if (!effectiveUserId) return;
+    if (loadedRef.current === effectiveUserId) return;
+
+    async function loadFromSupabase() {
+      const { data } = await supabase
+        .from('app_state')
+        .select('state')
+        .eq('user_id', effectiveUserId)
+        .single();
+
+      if (data?.state) {
+        loadedRef.current = effectiveUserId;
+        dispatch({ type: 'LOAD_STATE', payload: mergeLoaded(data.state) });
+      } else {
+        loadedRef.current = effectiveUserId;
+      }
+    }
+    loadFromSupabase();
+  }, [effectiveUserId]);
+
+  // Debounced save to Supabase (skip when viewing as another user — don't overwrite their data unintentionally)
+  useEffect(() => {
+    if (!user?.id || viewingAsUserId) return;
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      await supabase
+        .from('app_state')
+        .upsert({ user_id: user.id, state, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+    }, 1500);
+
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [state, user?.id, viewingAsUserId]);
 
   const fatValues = state.faturamento.filter(f => f.valor > 0);
   const mediaFaturamento = fatValues.length > 0 ? fatValues.reduce((s, f) => s + f.valor, 0) / fatValues.length : 0;
