@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Eye, ToggleLeft, ToggleRight, Users, RefreshCw, Pencil, Check, X, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, ToggleLeft, ToggleRight, Users, RefreshCw, Pencil, Check, X, UserPlus, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Cliente temporário sem persistência de sessão — usado só para criar usuários
@@ -36,6 +36,7 @@ export default function AdminPanel() {
   const [formEmail, setFormEmail] = useState('');
   const [formSenha, setFormSenha] = useState('');
   const [formNome, setFormNome]   = useState('');
+  const [showSenha, setShowSenha] = useState(false);
 
   useEffect(() => { loadClientes(); }, []);
 
@@ -47,7 +48,16 @@ export default function AdminPanel() {
       .eq('role', 'cliente')
       .order('criado_em', { ascending: false });
     if (error) toast.error('Erro ao carregar clientes');
-    else setClientes((data as Profile[]) || []);
+    else {
+      const list = (data as Profile[]) || [];
+      // Pendentes (inativos sem acesso) primeiro
+      list.sort((a, b) => {
+        const aPend = !a.ativo && !a.ultimo_acesso ? 1 : 0;
+        const bPend = !b.ativo && !b.ultimo_acesso ? 1 : 0;
+        return bPend - aPend;
+      });
+      setClientes(list);
+    }
     setLoading(false);
   }
 
@@ -186,13 +196,25 @@ export default function AdminPanel() {
               </div>
               <div className="space-y-1">
                 <Label>Senha inicial</Label>
-                <Input
-                  type="password"
-                  value={formSenha}
-                  onChange={e => setFormSenha(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
-                  disabled={creating}
-                />
+                <div className="relative">
+                  <Input
+                    type={showSenha ? 'text' : 'password'}
+                    value={formSenha}
+                    onChange={e => setFormSenha(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    disabled={creating}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSenha(s => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                    aria-label={showSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               <div className="sm:col-span-3 flex gap-2">
                 <Button type="submit" disabled={creating}>
