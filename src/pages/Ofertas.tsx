@@ -170,7 +170,12 @@ export default function Ofertas() {
     if (denom <= 0) return null;
     const preco = C / denom;
     const lucroDinheiro = preco * lucroUsado;
-    return { p1, p2, somaPrecoNormal: p1.pv + p2.pv, cmvTotal: C, lucroMinDinheiro: T, lucroMinPctSugerido: lucroMinPctCalc * 100, lucroUsadoPct: lucroUsado * 100, preco, lucroDinheiro };
+    const anchorProd = p1.pv >= p2.pv ? p1 : p2;
+    const levarProd  = p1.pv >= p2.pv ? p2 : p1;
+    const prodMaiorLucro = p1.lucroDinheiro >= p2.lucroDinheiro ? p1 : p2;
+    const upsellValor = preco - anchorProd.pv;
+    const lucroSuperaMinimo = lucroDinheiro > T;
+    return { p1, p2, somaPrecoNormal: p1.pv + p2.pv, cmvTotal: C, lucroMinDinheiro: T, lucroMinPctSugerido: lucroMinPctCalc * 100, lucroUsadoPct: lucroUsado * 100, preco, lucroDinheiro, anchorProd, levarProd, prodMaiorLucro, upsellValor, lucroSuperaMinimo };
   }
 
   function calcOfertaSubida() {
@@ -514,44 +519,189 @@ export default function Ofertas() {
 
             <TabsContent value="normal" className="space-y-4">
               <Card>
-                <CardHeader><CardTitle className="text-base">Oferta Normal — 2 Produtos Coringa</CardTitle>
-                  <CardDescription>Combine dois produtos fortes para criar uma oferta com margem garantida.</CardDescription>
+                <CardHeader>
+                  <CardTitle className="text-base">Oferta Normal — 2 Produtos Coringa</CardTitle>
+                  <CardDescription>
+                    Combina dois produtos <strong>coringa</strong> (alto lucro). O sistema identifica qual dos dois tem o
+                    <strong> maior lucro em R$</strong> e usa esse valor como <strong>lucro mínimo</strong> que a oferta
+                    precisa superar — garantindo que a oferta nunca seja pior que vender os itens separadamente.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+
+                  {/* conceito */}
+                  <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-3 text-xs text-muted-foreground space-y-2">
+                    <p className="font-semibold text-foreground text-sm">Como a fórmula funciona</p>
+                    <p className="font-mono">PV = (CMV_1 + CMV_2) ÷ (1 − (DNA% + lucro%))</p>
+                    <p>
+                      O lucro% é ajustado até que <span className="font-mono">PV × lucro%</span> supere o maior lucro em R$ dos dois produtos.
+                      O sistema calcula esse percentual mínimo automaticamente.
+                    </p>
+                    <p className="font-semibold text-foreground">Apresentação ao cliente:</p>
+                    <p className="font-mono">[produto mais caro] + R$ diferença → leva o [outro coringa]</p>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <ProdSelect value={normalProd1} onChange={setNormalProd1} label="Produto 1 (Coringa)" />
-                    <ProdSelect value={normalProd2} onChange={setNormalProd2} label="Produto 2 (Coringa)" />
+                    <ProdSelect value={normalProd1} onChange={setNormalProd1} label="Coringa 1" />
+                    <ProdSelect value={normalProd2} onChange={setNormalProd2} label="Coringa 2" />
                   </div>
+
+                  {/* cards individuais */}
+                  {(normalProd1 || normalProd2) && (() => {
+                    const p1d = produtosAnalise.find(p => p.id === normalProd1);
+                    const p2d = produtosAnalise.find(p => p.id === normalProd2);
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {p1d && (
+                          <div className="rounded-lg border p-3 space-y-1 text-sm">
+                            <p className="font-semibold">{p1d.nome}</p>
+                            <div className="flex justify-between"><span className="text-muted-foreground">PV</span><strong>{formatBRL(p1d.pv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">CMV</span><strong>{formatBRL(p1d.cmv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro %</span><strong>{formatPercent(p1d.lucratividade)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro R$</span>
+                              <strong className={p2d && p1d.lucroDinheiro >= p2d.lucroDinheiro ? 'text-yellow-600' : 'text-foreground'}>
+                                {formatBRL(p1d.lucroDinheiro)}
+                                {p2d && p1d.lucroDinheiro >= p2d.lucroDinheiro && ' ← mín.'}
+                              </strong>
+                            </div>
+                          </div>
+                        )}
+                        {p2d && (
+                          <div className="rounded-lg border p-3 space-y-1 text-sm">
+                            <p className="font-semibold">{p2d.nome}</p>
+                            <div className="flex justify-between"><span className="text-muted-foreground">PV</span><strong>{formatBRL(p2d.pv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">CMV</span><strong>{formatBRL(p2d.cmv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro %</span><strong>{formatPercent(p2d.lucratividade)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro R$</span>
+                              <strong className={p1d && p2d.lucroDinheiro >= p1d.lucroDinheiro ? 'text-yellow-600' : 'text-foreground'}>
+                                {formatBRL(p2d.lucroDinheiro)}
+                                {p1d && p2d.lucroDinheiro >= p1d.lucroDinheiro && ' ← mín.'}
+                              </strong>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Lucro Alvo (%)</label>
-                    <Input type="number" value={normalLucro} onChange={e => setNormalLucro(e.target.value ? Number(e.target.value) : '')} min={0} step={1} placeholder="Ex: 15" className="max-w-[200px]" />
-                    {ofertaNormal && <p className="text-xs text-muted-foreground">Sugerido (lucro mín.): {formatPercent(ofertaNormal.lucroMinPctSugerido)}</p>}
+                    <label className="text-xs text-muted-foreground">
+                      Lucro Alvo % — deixe em branco para usar o mínimo calculado automaticamente
+                    </label>
+                    <Input
+                      type="number"
+                      value={normalLucro}
+                      onChange={e => setNormalLucro(e.target.value ? Number(e.target.value) : '')}
+                      min={0} step={1} placeholder="Ex: 21"
+                      className="max-w-[200px]"
+                    />
+                    {ofertaNormal && (
+                      <p className="text-xs text-muted-foreground">
+                        Mínimo sugerido: <strong>{formatPercent(ofertaNormal.lucroMinPctSugerido)}</strong>
+                        {' '}(garante superar {formatBRL(ofertaNormal.lucroMinDinheiro)} de lucro mínimo)
+                        {typeof normalLucro !== 'number' && <span className="text-primary"> ← sendo usado</span>}
+                      </p>
+                    )}
                   </div>
-                  {ofertaNormal && (
-                    <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                        <div><span className="text-muted-foreground">Soma normal:</span><br /><strong>{formatBRL(ofertaNormal.somaPrecoNormal)}</strong></div>
-                        <div><span className="text-muted-foreground">CMV total:</span><br /><strong>{formatBRL(ofertaNormal.cmvTotal)}</strong></div>
-                        <div><span className="text-muted-foreground">Lucro mín. a superar:</span><br /><strong>{formatBRL(ofertaNormal.lucroMinDinheiro)}</strong></div>
-                        <div><span className="text-muted-foreground">Lucro usado:</span><br /><strong>{formatPercent(ofertaNormal.lucroUsadoPct)}</strong></div>
+
+                  {ofertaNormal && (() => {
+                    const { p1, p2, somaPrecoNormal, cmvTotal, lucroMinDinheiro, lucroUsadoPct, preco, lucroDinheiro, anchorProd, levarProd, prodMaiorLucro, upsellValor, lucroSuperaMinimo } = ofertaNormal;
+                    const denomDisplay = (1 - (dnaDecimal + lucroUsadoPct / 100)).toFixed(4);
+                    const provaClass = lucroSuperaMinimo
+                      ? 'rounded-lg border p-3 text-sm flex items-center gap-3 bg-green-50 border-green-200'
+                      : 'rounded-lg border p-3 text-sm flex items-center gap-3 bg-red-50 border-red-200';
+                    return (
+                      <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+
+                        {/* lucro mínimo destacado */}
+                        <div className="flex items-center gap-3 rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-sm">
+                          <AlertTriangle className="h-4 w-4 text-yellow-600 shrink-0" />
+                          <span>
+                            Lucro mínimo a superar: <strong>{prodMaiorLucro.nome}</strong> gera{' '}
+                            <strong className="text-yellow-700">{formatBRL(lucroMinDinheiro)}</strong> — a oferta precisa superar esse valor.
+                          </span>
+                        </div>
+
+                        {/* fórmula com valores reais */}
+                        <div className="rounded bg-background border p-3 space-y-1">
+                          <p className="text-xs text-muted-foreground mb-1 font-semibold">Cálculo aplicado:</p>
+                          <p className="font-mono text-xs">
+                            ({formatBRL(p1.cmv)} + {formatBRL(p2.cmv)}) ÷ (1 − ({formatPercent(dnaTotal)} + {formatPercent(lucroUsadoPct)}))
+                          </p>
+                          <p className="font-mono text-xs">
+                            = {formatBRL(cmvTotal)} ÷ {denomDisplay} = <strong className="text-primary text-base">{formatBRL(preco)}</strong>
+                          </p>
+                        </div>
+
+                        {/* prova: lucro da oferta vs lucro mínimo */}
+                        <div className={provaClass}>
+                          {lucroSuperaMinimo
+                            ? <TrendingUp className="h-4 w-4 text-green-600 shrink-0" />
+                            : <TrendingDown className="h-4 w-4 text-red-500 shrink-0" />}
+                          <span>
+                            Lucro da oferta: <strong className={lucroSuperaMinimo ? 'text-green-700' : 'text-red-600'}>{formatBRL(lucroDinheiro)}</strong>
+                            {' '}({formatPercent(lucroUsadoPct)}) {lucroSuperaMinimo ? '>' : '<'}{' '}
+                            lucro mínimo: <strong>{formatBRL(lucroMinDinheiro)}</strong>
+                            {' '}{lucroSuperaMinimo ? '✓ Aprovado' : '✗ Aumente o lucro%'}
+                          </span>
+                        </div>
+
+                        {/* DE → POR */}
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <div>
+                            <p className="text-xs text-muted-foreground">DE (soma normal)</p>
+                            <p className="text-xl line-through text-muted-foreground font-bold">{formatBRL(somaPrecoNormal)}</p>
+                          </div>
+                          <span className="text-2xl text-muted-foreground font-light">→</span>
+                          <div>
+                            <p className="text-xs text-muted-foreground">POR (oferta)</p>
+                            <p className="text-2xl font-bold text-primary">{formatBRL(preco)}</p>
+                          </div>
+                          <div className="ml-auto text-right">
+                            <p className="text-xs text-muted-foreground">Lucro da oferta</p>
+                            <p className="text-lg font-bold text-green-600">{formatBRL(lucroDinheiro)}</p>
+                            <p className="text-xs text-muted-foreground">{formatPercent(lucroUsadoPct)}</p>
+                          </div>
+                        </div>
+
+                        {/* apresentação ao cliente */}
+                        {lucroSuperaMinimo && (
+                          <div className="rounded-lg bg-primary/10 border border-primary/30 p-4 text-center space-y-2">
+                            <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Como apresentar ao cliente</p>
+                            <p className="text-xl font-bold leading-snug">
+                              {anchorProd.nome}
+                              <span className="text-muted-foreground font-normal"> + </span>
+                              <span className="text-primary">{formatBRL(Math.max(0, upsellValor))}</span>
+                              <span className="text-muted-foreground font-normal"> → leva o </span>
+                              {levarProd.nome}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              ({formatBRL(preco)} − {formatBRL(anchorProd.pv)} = {formatBRL(Math.max(0, upsellValor))})
+                            </p>
+                          </div>
+                        )}
+
+                        <Button
+                          size="sm"
+                          disabled={!lucroSuperaMinimo}
+                          onClick={() => saveOferta({
+                            tipo: 'normal',
+                            nome: `${p1.nome} + ${p2.nome}`,
+                            produtoIds: [p1.id, p2.id],
+                            nomesProdutos: [p1.nome, p2.nome],
+                            somaPrecoNormal,
+                            precoOferta: preco,
+                            cmvTotal,
+                            dnaPercent: dnaTotal,
+                            lucroPercent: lucroUsadoPct,
+                            lucroDinheiro,
+                            objetivoEstrategico: 'Combinar dois produtos coringa com lucro acima do mínimo',
+                            status: 'teste',
+                          })}
+                        >Salvar Oferta</Button>
                       </div>
-                      <div className="flex items-center gap-4 text-lg font-bold">
-                        <span className="line-through text-muted-foreground">{formatBRL(ofertaNormal.somaPrecoNormal)}</span>
-                        <span className="text-primary">por {formatBRL(ofertaNormal.preco)}</span>
-                      </div>
-                      <p className="text-sm">Lucro da oferta: <strong>{formatBRL(ofertaNormal.lucroDinheiro)}</strong></p>
-                      <Button size="sm" onClick={() => saveOferta({
-                        tipo: 'normal', nome: `${ofertaNormal.p1.nome} + ${ofertaNormal.p2.nome}`,
-                        produtoIds: [ofertaNormal.p1.id, ofertaNormal.p2.id],
-                        nomesProdutos: [ofertaNormal.p1.nome, ofertaNormal.p2.nome],
-                        somaPrecoNormal: ofertaNormal.somaPrecoNormal, precoOferta: ofertaNormal.preco,
-                        cmvTotal: ofertaNormal.cmvTotal, dnaPercent: dnaTotal,
-                        lucroPercent: ofertaNormal.lucroUsadoPct, lucroDinheiro: ofertaNormal.lucroDinheiro,
-                        objetivoEstrategico: 'Combinar dois produtos coringa com margem garantida',
-                        status: 'teste',
-                      })}>Salvar Oferta</Button>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>
