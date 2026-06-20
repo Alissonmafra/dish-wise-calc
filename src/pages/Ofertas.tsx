@@ -223,13 +223,15 @@ export default function Ofertas() {
     const lucroAlvo = agressivaLucro / 100;
     const denom = 1 - (dnaDecimal + lucroAlvo);
     if (denom <= 0) return null;
-    const precoBase = (cmv * agressivaQtd) / denom;
+    const precoBase = (cmv * 2) / denom;
     const lucroDinheiro = precoBase * lucroAlvo;
-    const sugestoes = psychologicalPrices(precoBase);
-    const minPreco = (cmv * agressivaQtd) / (1 - dnaDecimal);
-    const validos = sugestoes.filter(p => p >= minPreco);
-    const precoPsico = validos.length > 0 ? validos[0] : sugestoes[0];
-    return { cmvUnit: cmv, qtd: agressivaQtd, precoBase, lucroDinheiro, sugestoes: sugestoes.slice(0, 3), precoPsico, lucroAlvoPct: agressivaLucro };
+    const SPLITS = [0.99, 1.99, 2.99, 3.99, 4.99, 9.99];
+    const splitOptions = SPLITS.map(split => {
+      const mainPrice = Math.floor(precoBase - split);
+      const totalPsico = mainPrice + split;
+      return { split, mainPrice, totalPsico };
+    }).filter(o => o.mainPrice > 0);
+    return { cmvUnit: cmv, precoBase, lucroDinheiro, lucroAlvoPct: agressivaLucro, splitOptions };
   }
 
   const ofertaNormal = calcOfertaNormal();
@@ -1044,62 +1046,124 @@ export default function Ofertas() {
 
             <TabsContent value="agressiva" className="space-y-4">
               <Card>
-                <CardHeader><CardTitle className="text-base">Oferta Agressiva</CardTitle>
-                  <CardDescription>Produto novo ou montagem especial. Arredondamento psicológico automático.</CardDescription>
+                <CardHeader>
+                  <CardTitle className="text-base">Oferta Agressiva — Produto Novo</CardTitle>
+                  <CardDescription>
+                    Para produtos <strong>novos que ainda não estão no cardápio</strong>. A oferta é sempre
+                    <strong> o mesmo item × 2</strong>. O preço é dividido em um valor principal +
+                    um valor pequeno com terminação psicológica (.99), criando a percepção de "ganhe o segundo quase de graça".
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                  {/* conceito */}
+                  <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-3 text-xs text-muted-foreground space-y-2">
+                    <p className="font-semibold text-foreground text-sm">Como a fórmula funciona</p>
+                    <p className="font-mono">PV = (CMV + CMV) ÷ (1 − (DNA% + 10%))</p>
+                    <p>Sempre 2 unidades do mesmo produto. O lucro parte de 10% mínimo.</p>
+                    <p className="font-semibold text-foreground">Splits psicológicos disponíveis:</p>
+                    <p className="font-mono">R$0,99 / R$1,99 / R$2,99 / R$3,99 / R$4,99 / R$9,99</p>
+                    <p>O preço base é dividido em: <span className="font-mono">R$[mainPrice],00 + R$[split] LEVA OUTRO</span></p>
+                    <p>Onde <span className="font-mono">mainPrice = floor(PV − split)</span></p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">Nome da Oferta</label>
-                      <Input value={agressivaNome} onChange={e => setAgressivaNome(e.target.value)} placeholder="Ex: Leve 2 por..." />
+                      <label className="text-xs text-muted-foreground">Nome do produto novo</label>
+                      <Input value={agressivaNome} onChange={e => setAgressivaNome(e.target.value)} placeholder="Ex: Burguer Especial" />
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs text-muted-foreground">CMV Unitário (R$)</label>
-                      <Input type="number" value={agressivaCmv} onChange={e => setAgressivaCmv(e.target.value ? Number(e.target.value) : '')} min={0} step={0.01} />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">Quantidade</label>
-                      <Input type="number" value={agressivaQtd} onChange={e => setAgressivaQtd(Number(e.target.value) || 2)} min={1} />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">Lucro Alvo (%)</label>
-                      <Input type="number" value={agressivaLucro} onChange={e => setAgressivaLucro(Number(e.target.value) || 10)} min={0} step={1} />
+                      <Input type="number" value={agressivaCmv} onChange={e => setAgressivaCmv(e.target.value ? Number(e.target.value) : '')} min={0} step={0.01} placeholder="Ex: 7,50" />
                     </div>
                   </div>
-                  {ofertaAgressiva && (
-                    <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                        <div><span className="text-muted-foreground">Preço calculado:</span><br /><strong>{formatBRL(ofertaAgressiva.precoBase)}</strong></div>
-                        <div><span className="text-muted-foreground">Lucro da oferta:</span><br /><strong>{formatBRL(ofertaAgressiva.lucroDinheiro)}</strong></div>
-                        <div><span className="text-muted-foreground">DNA:</span><br /><strong>{formatPercent(dnaTotal)}</strong></div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium mb-2">Sugestões de preço psicológico:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {ofertaAgressiva.sugestoes.map(p => (
-                            <Badge key={p} variant={p === ofertaAgressiva.precoPsico ? 'default' : 'outline'} className="text-base px-3 py-1">
-                              {formatBRL(p)}
-                            </Badge>
-                          ))}
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Lucro Alvo % (mínimo 10%)</label>
+                    <Input
+                      type="number"
+                      value={agressivaLucro}
+                      onChange={e => setAgressivaLucro(Number(e.target.value) || 10)}
+                      min={10} step={1}
+                      className="max-w-[200px]"
+                    />
+                  </div>
+
+                  {ofertaAgressiva && (() => {
+                    const { cmvUnit, precoBase, lucroDinheiro, lucroAlvoPct, splitOptions } = ofertaAgressiva;
+                    const denomDisplay = (1 - (dnaDecimal + lucroAlvoPct / 100)).toFixed(2);
+                    return (
+                      <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+
+                        {/* cálculo aplicado */}
+                        <div className="rounded bg-background border p-3 space-y-1">
+                          <p className="text-xs text-muted-foreground mb-1 font-semibold">Cálculo aplicado (2 unidades):</p>
+                          <p className="font-mono text-xs">
+                            ({formatBRL(cmvUnit)} + {formatBRL(cmvUnit)}) ÷ (1 − ({formatPercent(dnaTotal)} + {formatPercent(lucroAlvoPct)}))
+                          </p>
+                          <p className="font-mono text-xs">
+                            = {formatBRL(cmvUnit * 2)} ÷ {denomDisplay} = <strong className="text-primary text-base">{formatBRL(precoBase)}</strong>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Lucro da oferta: <strong className="text-green-600">{formatBRL(lucroDinheiro)}</strong> ({formatPercent(lucroAlvoPct)})
+                          </p>
+                        </div>
+
+                        {/* splits psicológicos */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold">Opções de apresentação ao cliente:</p>
+                          {splitOptions.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Nenhum split disponível para este preço base.</p>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {splitOptions.map((opt, idx) => (
+                                <div
+                                  key={opt.split}
+                                  className={idx === 0
+                                    ? 'rounded-lg border-2 border-primary bg-primary/5 p-3 space-y-1'
+                                    : 'rounded-lg border p-3 space-y-1 bg-background'}
+                                >
+                                  {idx === 0 && (
+                                    <p className="text-xs text-primary font-semibold uppercase tracking-wide">Recomendado</p>
+                                  )}
+                                  <p className="text-lg font-bold">
+                                    {formatBRL(opt.mainPrice)}
+                                    <span className="text-muted-foreground font-normal text-sm"> + </span>
+                                    <span className="text-primary">{formatBRL(opt.split)}</span>
+                                    <span className="text-muted-foreground font-normal text-sm"> LEVA OUTRO</span>
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Total: {formatBRL(opt.totalPsico)} (base: {formatBRL(precoBase)})
+                                  </p>
+                                  <Button
+                                    size="sm"
+                                    variant={idx === 0 ? 'default' : 'outline'}
+                                    className="w-full mt-1"
+                                    onClick={() => saveOferta({
+                                      tipo: 'agressiva',
+                                      nome: agressivaNome || 'Oferta Agressiva',
+                                      produtoIds: [],
+                                      nomesProdutos: [],
+                                      somaPrecoNormal: 0,
+                                      precoOferta: opt.totalPsico,
+                                      cmvTotal: cmvUnit * 2,
+                                      dnaPercent: dnaTotal,
+                                      lucroPercent: lucroAlvoPct,
+                                      lucroDinheiro,
+                                      objetivoEstrategico: `${formatBRL(opt.mainPrice)} + ${formatBRL(opt.split)} LEVA OUTRO — produto novo para gerar volume`,
+                                      status: 'teste',
+                                    })}
+                                  >
+                                    Salvar: {formatBRL(opt.mainPrice)} + {formatBRL(opt.split)} LEVA OUTRO
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="text-lg font-bold text-primary">
-                        Leve {agressivaQtd} por {formatBRL(ofertaAgressiva.precoPsico || ofertaAgressiva.precoBase)}
-                      </div>
-                      <Button size="sm" onClick={() => saveOferta({
-                        tipo: 'agressiva', nome: agressivaNome || `Oferta Agressiva`,
-                        produtoIds: [], nomesProdutos: [],
-                        somaPrecoNormal: 0, precoOferta: ofertaAgressiva.precoPsico || ofertaAgressiva.precoBase,
-                        cmvTotal: (typeof agressivaCmv === 'number' ? agressivaCmv : 0) * agressivaQtd,
-                        dnaPercent: dnaTotal, lucroPercent: agressivaLucro,
-                        lucroDinheiro: ofertaAgressiva.lucroDinheiro,
-                        objetivoEstrategico: 'Oferta agressiva para atrair clientes e gerar volume',
-                        status: 'teste', cmvUnitario: typeof agressivaCmv === 'number' ? agressivaCmv : 0,
-                        quantidade: agressivaQtd, lucroAlvo: agressivaLucro,
-                        precoPsicologico: ofertaAgressiva.precoPsico,
-                      })}>Salvar Oferta</Button>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>
