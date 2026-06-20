@@ -382,7 +382,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     saveTimerRef.current = setTimeout(async () => {
       await supabase
         .from('app_state')
-        .upsert({ user_id: user.id, state, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+        .upsert({ user_id: user.id, state: state as any, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
     }, 1500);
 
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
