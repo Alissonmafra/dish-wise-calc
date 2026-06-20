@@ -44,14 +44,23 @@ function ProtectedRoute({ children, adminOnly = false }: { children: React.React
   );
 
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
-  if (profile && !profile.ativo) return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="text-center space-y-2 max-w-sm">
-        <h2 className="text-xl font-bold">Acesso suspenso</h2>
-        <p className="text-muted-foreground text-sm">Sua conta está inativa. Entre em contato com o administrador.</p>
+  if (profile && !profile.ativo) {
+    const pendente = !profile.ultimo_acesso;
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center space-y-2 max-w-sm">
+          <h2 className="text-xl font-bold">
+            {pendente ? 'Cadastro pendente' : 'Acesso suspenso'}
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            {pendente
+              ? 'Seu cadastro foi recebido e aguarda aprovação do administrador.'
+              : 'Sua conta está inativa. Entre em contato com o administrador.'}
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
   if (adminOnly && profile?.role !== 'admin') return <Navigate to="/" replace />;
 
   return <>{children}</>;
