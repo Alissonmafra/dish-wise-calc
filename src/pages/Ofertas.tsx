@@ -575,7 +575,7 @@ export default function Ofertas() {
                     <p>O cliente paga menos que a soma individual dos dois itens, mas a margem sobe porque o coringa puxa a média para cima.</p>
                     <p className="font-semibold text-foreground">Apresentação ao cliente:</p>
                     <p className="font-mono">[Coringa] + R$ diferença → leva o [produto fraco]</p>
-                    <p>Exemplo: "BC1 + R$14,45 leva o B8" &nbsp;&nbsp; (R$44,44 − R$29,99 = R$14,45)</p>
+                    <p>Os valores reais aparecem automaticamente no bloco de cálculo abaixo após selecionar os produtos.</p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
