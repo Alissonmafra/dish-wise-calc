@@ -210,7 +210,11 @@ export default function Ofertas() {
     if (denom <= 0) return null;
     const preco = C / denom;
     const lucroDinheiro = preco * lucroUsado;
-    return { pCampeao, pCoringa, somaPrecoNormal: pCampeao.pv + pCoringa.pv, cmvTotal: C, lucroMinDinheiro: T, lucroSugeridoPct, lucroPct: lucroUsadoPct, preco, lucroDinheiro };
+    const prodMenorLucro = pCampeao.lucroDinheiro <= pCoringa.lucroDinheiro ? pCampeao : pCoringa;
+    const upsellRaw = preco - pCoringa.pv;
+    const upsellPsico = upsellRaw > 0.99 ? Math.floor(upsellRaw - 0.99) + 0.99 : Math.max(0, upsellRaw);
+    const lucroSuperaMinimo = lucroDinheiro > T;
+    return { pCampeao, pCoringa, somaPrecoNormal: pCampeao.pv + pCoringa.pv, cmvTotal: C, lucroMinDinheiro: T, lucroSugeridoPct, lucroPct: lucroUsadoPct, preco, lucroDinheiro, prodMenorLucro, upsellRaw, upsellPsico, lucroSuperaMinimo };
   }
 
   function calcOfertaAgressiva() {
@@ -851,44 +855,189 @@ export default function Ofertas() {
 
             <TabsContent value="escala" className="space-y-4">
               <Card>
-                <CardHeader><CardTitle className="text-base">Oferta Escala de Vendas</CardTitle>
-                  <CardDescription>Campeão de vendas + coringa.</CardDescription>
+                <CardHeader>
+                  <CardTitle className="text-base">Oferta Escala de Vendas — Campeão + Coringa</CardTitle>
+                  <CardDescription>
+                    Combina o <strong>campeão de vendas</strong> com um produto <strong>coringa</strong>.
+                    O lucro mínimo é o <strong>menor lucro em R$</strong> dos dois produtos — a oferta não pode ir abaixo disso.
+                    O percentual de lucro parte de <strong>no mínimo 10%</strong> e é validado contra esse piso.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+
+                  {/* conceito */}
+                  <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-3 text-xs text-muted-foreground space-y-2">
+                    <p className="font-semibold text-foreground text-sm">Como a fórmula funciona</p>
+                    <p className="font-mono">PV = (CMV_campeão + CMV_coringa) ÷ (1 − (DNA% + lucro%))</p>
+                    <p>
+                      Começa com lucro mínimo de <strong>10%</strong>. Verifica se <span className="font-mono">PV × 10%</span> supera
+                      o menor lucro em R$ dos dois produtos. Se não superar, aumenta o percentual até validar.
+                    </p>
+                    <p className="font-semibold text-foreground">Apresentação ao cliente:</p>
+                    <p className="font-mono">[Coringa] + R$ diferença (preço psicológico) → LEVA O [Campeão]</p>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <ProdSelect value={escalaProdCampeao} onChange={setEscalaProdCampeao} label="Campeão de Vendas" />
                     <ProdSelect value={escalaProdCoringa} onChange={setEscalaProdCoringa} label="Produto Coringa" />
                   </div>
+
+                  {/* cards individuais */}
+                  {(escalaProdCampeao || escalaProdCoringa) && (() => {
+                    const pc = produtosAnalise.find(p => p.id === escalaProdCampeao);
+                    const pk = produtosAnalise.find(p => p.id === escalaProdCoringa);
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {pc && (
+                          <div className="rounded-lg border p-3 space-y-1 text-sm">
+                            <p className="font-semibold">{pc.nome} <span className="text-xs text-muted-foreground font-normal">(campeão)</span></p>
+                            <div className="flex justify-between"><span className="text-muted-foreground">PV</span><strong>{formatBRL(pc.pv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">CMV</span><strong>{formatBRL(pc.cmv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro %</span><strong>{formatPercent(pc.lucratividade)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro R$</span>
+                              <strong className={pk && pc.lucroDinheiro <= pk.lucroDinheiro ? 'text-orange-500' : 'text-foreground'}>
+                                {formatBRL(pc.lucroDinheiro)}
+                                {pk && pc.lucroDinheiro <= pk.lucroDinheiro && ' ← mín.'}
+                              </strong>
+                            </div>
+                          </div>
+                        )}
+                        {pk && (
+                          <div className="rounded-lg border p-3 space-y-1 text-sm">
+                            <p className="font-semibold">{pk.nome} <span className="text-xs text-muted-foreground font-normal">(coringa)</span></p>
+                            <div className="flex justify-between"><span className="text-muted-foreground">PV</span><strong>{formatBRL(pk.pv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">CMV</span><strong>{formatBRL(pk.cmv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro %</span><strong>{formatPercent(pk.lucratividade)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro R$</span>
+                              <strong className={pc && pk.lucroDinheiro <= pc.lucroDinheiro ? 'text-orange-500' : 'text-foreground'}>
+                                {formatBRL(pk.lucroDinheiro)}
+                                {pc && pk.lucroDinheiro <= pc.lucroDinheiro && ' ← mín.'}
+                              </strong>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Lucro Alvo (%)</label>
-                    <Input type="number" value={escalaLucro} onChange={e => setEscalaLucro(e.target.value ? Number(e.target.value) : '')} min={0} step={1} placeholder="Ex: 10" className="max-w-[200px]" />
-                    {ofertaEscala && <p className="text-xs text-muted-foreground">Sugerido: {formatPercent(ofertaEscala.lucroSugeridoPct)}</p>}
+                    <label className="text-xs text-muted-foreground">
+                      Lucro Alvo % — mínimo de 10%, deixe em branco para usar o calculado automaticamente
+                    </label>
+                    <Input
+                      type="number"
+                      value={escalaLucro}
+                      onChange={e => setEscalaLucro(e.target.value ? Number(e.target.value) : '')}
+                      min={10} step={1} placeholder="Ex: 10"
+                      className="max-w-[200px]"
+                    />
+                    {ofertaEscala && (
+                      <p className="text-xs text-muted-foreground">
+                        Mínimo sugerido: <strong>{formatPercent(ofertaEscala.lucroSugeridoPct)}</strong>
+                        {typeof escalaLucro !== 'number' && <span className="text-primary"> ← sendo usado</span>}
+                      </p>
+                    )}
                   </div>
-                  {ofertaEscala && (
-                    <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                        <div><span className="text-muted-foreground">Soma normal:</span><br /><strong>{formatBRL(ofertaEscala.somaPrecoNormal)}</strong></div>
-                        <div><span className="text-muted-foreground">CMV total:</span><br /><strong>{formatBRL(ofertaEscala.cmvTotal)}</strong></div>
-                        <div><span className="text-muted-foreground">Lucro mín. R$:</span><br /><strong>{formatBRL(ofertaEscala.lucroMinDinheiro)}</strong></div>
-                        <div><span className="text-muted-foreground">Lucro usado:</span><br /><strong>{formatPercent(ofertaEscala.lucroPct)}</strong></div>
+
+                  {ofertaEscala && (() => {
+                    const { pCampeao, pCoringa, somaPrecoNormal, cmvTotal, lucroMinDinheiro, lucroPct, preco, lucroDinheiro, prodMenorLucro, upsellRaw, upsellPsico, lucroSuperaMinimo } = ofertaEscala;
+                    const denomDisplay = (1 - (dnaDecimal + lucroPct / 100)).toFixed(4);
+                    const provaClass = lucroSuperaMinimo
+                      ? 'rounded-lg border p-3 text-sm flex items-center gap-3 bg-green-50 border-green-200'
+                      : 'rounded-lg border p-3 text-sm flex items-center gap-3 bg-red-50 border-red-200';
+                    return (
+                      <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+
+                        {/* lucro mínimo destacado */}
+                        <div className="flex items-center gap-3 rounded-lg bg-orange-50 border border-orange-200 p-3 text-sm">
+                          <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
+                          <span>
+                            Lucro mínimo: <strong>{prodMenorLucro.nome}</strong> gera apenas{' '}
+                            <strong className="text-orange-600">{formatBRL(lucroMinDinheiro)}</strong> — a oferta não pode ficar abaixo disso.
+                          </span>
+                        </div>
+
+                        {/* fórmula com valores reais */}
+                        <div className="rounded bg-background border p-3 space-y-1">
+                          <p className="text-xs text-muted-foreground mb-1 font-semibold">Cálculo aplicado:</p>
+                          <p className="font-mono text-xs">
+                            ({formatBRL(pCampeao.cmv)} + {formatBRL(pCoringa.cmv)}) ÷ (1 − ({formatPercent(dnaTotal)} + {formatPercent(lucroPct)}))
+                          </p>
+                          <p className="font-mono text-xs">
+                            = {formatBRL(cmvTotal)} ÷ {denomDisplay} = <strong className="text-primary text-base">{formatBRL(preco)}</strong>
+                          </p>
+                        </div>
+
+                        {/* prova: lucro da oferta > lucro mínimo */}
+                        <div className={provaClass}>
+                          {lucroSuperaMinimo
+                            ? <TrendingUp className="h-4 w-4 text-green-600 shrink-0" />
+                            : <TrendingDown className="h-4 w-4 text-red-500 shrink-0" />}
+                          <span>
+                            Prova: {formatBRL(preco)} × {formatPercent(lucroPct)} ={' '}
+                            <strong className={lucroSuperaMinimo ? 'text-green-700' : 'text-red-600'}>{formatBRL(lucroDinheiro)}</strong>
+                            {' '}{lucroSuperaMinimo ? '>' : '<'}{' '}
+                            <strong>{formatBRL(lucroMinDinheiro)}</strong> (mínimo)
+                            {' '}{lucroSuperaMinimo ? '✓ Aprovado' : '✗ Aumente o lucro%'}
+                          </span>
+                        </div>
+
+                        {/* DE → POR */}
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <div>
+                            <p className="text-xs text-muted-foreground">DE (soma normal)</p>
+                            <p className="text-xl line-through text-muted-foreground font-bold">{formatBRL(somaPrecoNormal)}</p>
+                          </div>
+                          <span className="text-2xl text-muted-foreground font-light">→</span>
+                          <div>
+                            <p className="text-xs text-muted-foreground">POR (oferta)</p>
+                            <p className="text-2xl font-bold text-primary">{formatBRL(preco)}</p>
+                          </div>
+                          <div className="ml-auto text-right">
+                            <p className="text-xs text-muted-foreground">Lucro da oferta</p>
+                            <p className="text-lg font-bold text-green-600">{formatBRL(lucroDinheiro)}</p>
+                            <p className="text-xs text-muted-foreground">{formatPercent(lucroPct)}</p>
+                          </div>
+                        </div>
+
+                        {/* apresentação ao cliente com preço psicológico */}
+                        {lucroSuperaMinimo && (
+                          <div className="rounded-lg bg-primary/10 border border-primary/30 p-4 text-center space-y-2">
+                            <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Como apresentar ao cliente</p>
+                            <p className="text-xl font-bold leading-snug">
+                              {pCoringa.nome}
+                              <span className="text-muted-foreground font-normal"> + </span>
+                              <span className="text-primary">{formatBRL(upsellPsico)}</span>
+                              <span className="text-muted-foreground font-normal"> → LEVA O </span>
+                              {pCampeao.nome}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Diferença calculada: {formatBRL(upsellRaw)} → arredondado para preço psicológico: {formatBRL(upsellPsico)}
+                            </p>
+                          </div>
+                        )}
+
+                        <Button
+                          size="sm"
+                          disabled={!lucroSuperaMinimo}
+                          onClick={() => saveOferta({
+                            tipo: 'escala_vendas',
+                            nome: `${pCampeao.nome} + ${pCoringa.nome}`,
+                            produtoIds: [pCampeao.id, pCoringa.id],
+                            nomesProdutos: [pCampeao.nome, pCoringa.nome],
+                            somaPrecoNormal,
+                            precoOferta: preco,
+                            cmvTotal,
+                            dnaPercent: dnaTotal,
+                            lucroPercent: lucroPct,
+                            lucroDinheiro,
+                            objetivoEstrategico: 'Escalar volume de vendas com margem acima do lucro mínimo',
+                            status: 'teste',
+                          })}
+                        >Salvar Oferta</Button>
                       </div>
-                      <div className="flex items-center gap-4 text-lg font-bold">
-                        <span className="line-through text-muted-foreground">{formatBRL(ofertaEscala.somaPrecoNormal)}</span>
-                        <span className="text-primary">por {formatBRL(ofertaEscala.preco)}</span>
-                      </div>
-                      <p className="text-sm">Lucro da oferta: <strong>{formatBRL(ofertaEscala.lucroDinheiro)}</strong></p>
-                      <Button size="sm" onClick={() => saveOferta({
-                        tipo: 'escala_vendas', nome: `${ofertaEscala.pCampeao.nome} + ${ofertaEscala.pCoringa.nome}`,
-                        produtoIds: [ofertaEscala.pCampeao.id, ofertaEscala.pCoringa.id],
-                        nomesProdutos: [ofertaEscala.pCampeao.nome, ofertaEscala.pCoringa.nome],
-                        somaPrecoNormal: ofertaEscala.somaPrecoNormal, precoOferta: ofertaEscala.preco,
-                        cmvTotal: ofertaEscala.cmvTotal, dnaPercent: dnaTotal,
-                        lucroPercent: ofertaEscala.lucroPct, lucroDinheiro: ofertaEscala.lucroDinheiro,
-                        objetivoEstrategico: 'Escalar volume de vendas com margem de segurança',
-                        status: 'teste',
-                      })}>Salvar Oferta</Button>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>
