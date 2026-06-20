@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_state: {
+        Row: {
+          state: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          state?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          state?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          id: string
+          nome_restaurante: string
+          role: string
+          ultimo_acesso: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          id: string
+          nome_restaurante?: string
+          role?: string
+          ultimo_acesso?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          nome_restaurante?: string
+          role?: string
+          ultimo_acesso?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
