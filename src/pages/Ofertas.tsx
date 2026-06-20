@@ -186,7 +186,8 @@ export default function Ofertas() {
     if (denom <= 0) return null;
     const preco = C / denom;
     const lucroDinheiro = preco * lucroUsado;
-    return { pFraco, pCoringa, somaPrecoNormal: pFraco.pv + pCoringa.pv, cmvTotal: C, lucroSugeridoPct, lucroUsadoPct, preco, lucroDinheiro };
+    const upsellValor = preco - pCoringa.pv;
+    return { pFraco, pCoringa, somaPrecoNormal: pFraco.pv + pCoringa.pv, cmvTotal: C, lucroSugeridoPct, lucroUsadoPct, preco, lucroDinheiro, upsellValor };
   }
 
   function calcOfertaEscala() {
@@ -557,43 +558,143 @@ export default function Ofertas() {
 
             <TabsContent value="subida" className="space-y-4">
               <Card>
-                <CardHeader><CardTitle className="text-base">Oferta Subida de Lucro</CardTitle>
-                  <CardDescription>Item de menor lucro + coringa.</CardDescription>
+                <CardHeader>
+                  <CardTitle className="text-base">Oferta Subida de Lucro</CardTitle>
+                  <CardDescription>
+                    Combina o produto de <strong>menor lucro em R$</strong> com um produto <strong>coringa</strong> (alto lucro).
+                    O preço usa a média de lucro dos produtos mais vendidos — elevando a margem do item fraco
+                    sem assustar o cliente, pois o coringa ancora o valor percebido.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+
+                  {/* bloco conceito */}
+                  <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20 p-3 text-xs text-muted-foreground space-y-2">
+                    <p className="font-semibold text-foreground text-sm">Como a fórmula funciona</p>
+                    <p className="font-mono">PV = (CMV_fraco + CMV_coringa) ÷ (1 − (DNA% + média_lucro_mais_vendidos%))</p>
+                    <p>O cliente paga menos que a soma individual dos dois itens, mas a margem sobe porque o coringa puxa a média para cima.</p>
+                    <p className="font-semibold text-foreground">Apresentação ao cliente:</p>
+                    <p className="font-mono">[Coringa] + R$ diferença → leva o [produto fraco]</p>
+                    <p>Exemplo: "BC1 + R$14,45 leva o B8" &nbsp;&nbsp; (R$44,44 − R$29,99 = R$14,45)</p>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <ProdSelect value={subidaProdFraco} onChange={setSubidaProdFraco} label="Produto Fraco (Menor Lucro)" />
-                    <ProdSelect value={subidaProdCoringa} onChange={setSubidaProdCoringa} label="Produto Coringa" />
+                    <ProdSelect value={subidaProdFraco} onChange={setSubidaProdFraco} label="Produto Fraco (Menor Lucro em R$)" />
+                    <ProdSelect value={subidaProdCoringa} onChange={setSubidaProdCoringa} label="Produto Coringa (Alto Lucro)" />
                   </div>
+
+                  {/* cards individuais */}
+                  {(subidaProdFraco || subidaProdCoringa) && (() => {
+                    const pf = produtosAnalise.find(p => p.id === subidaProdFraco);
+                    const pc = produtosAnalise.find(p => p.id === subidaProdCoringa);
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {pf && (
+                          <div className="rounded-lg border p-3 space-y-1 text-sm">
+                            <p className="font-semibold">{pf.nome} <span className="text-xs text-muted-foreground font-normal">(fraco)</span></p>
+                            <div className="flex justify-between"><span className="text-muted-foreground">PV</span><strong>{formatBRL(pf.pv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">CMV</span><strong>{formatBRL(pf.cmv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro %</span><strong>{formatPercent(pf.lucratividade)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro R$</span><strong className="text-orange-500">{formatBRL(pf.lucroDinheiro)}</strong></div>
+                          </div>
+                        )}
+                        {pc && (
+                          <div className="rounded-lg border p-3 space-y-1 text-sm">
+                            <p className="font-semibold">{pc.nome} <span className="text-xs text-muted-foreground font-normal">(coringa)</span></p>
+                            <div className="flex justify-between"><span className="text-muted-foreground">PV</span><strong>{formatBRL(pc.pv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">CMV</span><strong>{formatBRL(pc.cmv)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro %</span><strong>{formatPercent(pc.lucratividade)}</strong></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Lucro R$</span><strong className="text-green-600">{formatBRL(pc.lucroDinheiro)}</strong></div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Lucro Alvo (%)</label>
-                    <Input type="number" value={subidaLucro} onChange={e => setSubidaLucro(e.target.value ? Number(e.target.value) : '')} min={0} step={1} placeholder="Ex: 20" className="max-w-[200px]" />
-                    <p className="text-xs text-muted-foreground">Sugerido (média mais vendidos): {formatPercent(mediaLucroMaisVendidos)}</p>
+                    <label className="text-xs text-muted-foreground">
+                      Lucro Alvo % — deixe em branco para usar a média dos mais vendidos (80/20)
+                    </label>
+                    <Input
+                      type="number"
+                      value={subidaLucro}
+                      onChange={e => setSubidaLucro(e.target.value ? Number(e.target.value) : '')}
+                      min={0} step={1} placeholder="Ex: 15"
+                      className="max-w-[200px]"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Média dos mais vendidos: <strong>{formatPercent(mediaLucroMaisVendidos)}</strong>
+                      {typeof subidaLucro !== 'number' && <span className="text-primary"> ← sendo usado</span>}
+                    </p>
                   </div>
-                  {ofertaSubida && (
-                    <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                        <div><span className="text-muted-foreground">Soma normal:</span><br /><strong>{formatBRL(ofertaSubida.somaPrecoNormal)}</strong></div>
-                        <div><span className="text-muted-foreground">CMV total:</span><br /><strong>{formatBRL(ofertaSubida.cmvTotal)}</strong></div>
-                        <div><span className="text-muted-foreground">Lucro usado:</span><br /><strong>{formatPercent(ofertaSubida.lucroUsadoPct)}</strong></div>
+
+                  {ofertaSubida && (() => {
+                    const { pFraco, pCoringa, somaPrecoNormal, cmvTotal, lucroUsadoPct, preco, lucroDinheiro, upsellValor } = ofertaSubida;
+                    const denomDisplay = (1 - (dnaDecimal + lucroUsadoPct / 100)).toFixed(4);
+                    return (
+                      <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+
+                        {/* fórmula com valores reais */}
+                        <div className="rounded bg-background border p-3 space-y-1">
+                          <p className="text-xs text-muted-foreground mb-1 font-semibold">Cálculo aplicado:</p>
+                          <p className="font-mono text-xs">
+                            ({formatBRL(pFraco.cmv)} + {formatBRL(pCoringa.cmv)}) ÷ (1 − ({formatPercent(dnaTotal)} + {formatPercent(lucroUsadoPct)}))
+                          </p>
+                          <p className="font-mono text-xs">
+                            = {formatBRL(cmvTotal)} ÷ {denomDisplay} = <strong className="text-primary text-base">{formatBRL(preco)}</strong>
+                          </p>
+                        </div>
+
+                        {/* preço riscado → oferta */}
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Preço normal (soma)</p>
+                            <p className="text-xl line-through text-muted-foreground font-bold">{formatBRL(somaPrecoNormal)}</p>
+                          </div>
+                          <span className="text-2xl text-muted-foreground font-light">→</span>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Preço da oferta</p>
+                            <p className="text-2xl font-bold text-primary">{formatBRL(preco)}</p>
+                          </div>
+                          <div className="ml-auto text-right">
+                            <p className="text-xs text-muted-foreground">Lucro da oferta</p>
+                            <p className="text-lg font-bold text-green-600">{formatBRL(lucroDinheiro)}</p>
+                            <p className="text-xs text-muted-foreground">{formatPercent(lucroUsadoPct)}</p>
+                          </div>
+                        </div>
+
+                        {/* box de apresentação ao cliente */}
+                        <div className="rounded-lg bg-primary/10 border border-primary/30 p-4 text-center space-y-2">
+                          <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">Como apresentar ao cliente</p>
+                          <p className="text-xl font-bold leading-snug">
+                            {pCoringa.nome}
+                            <span className="text-muted-foreground font-normal"> + </span>
+                            <span className="text-primary">{formatBRL(Math.max(0, upsellValor))}</span>
+                            <span className="text-muted-foreground font-normal"> → leva o </span>
+                            {pFraco.nome}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            ({formatBRL(preco)} − {formatBRL(pCoringa.pv)} = {formatBRL(Math.max(0, upsellValor))})
+                          </p>
+                        </div>
+
+                        <Button size="sm" onClick={() => saveOferta({
+                          tipo: 'subida_lucro',
+                          nome: `${pFraco.nome} + ${pCoringa.nome}`,
+                          produtoIds: [pFraco.id, pCoringa.id],
+                          nomesProdutos: [pFraco.nome, pCoringa.nome],
+                          somaPrecoNormal,
+                          precoOferta: preco,
+                          cmvTotal,
+                          dnaPercent: dnaTotal,
+                          lucroPercent: lucroUsadoPct,
+                          lucroDinheiro,
+                          objetivoEstrategico: 'Elevar margem de produto com baixa lucratividade via coringa',
+                          status: 'teste',
+                        })}>Salvar Oferta</Button>
                       </div>
-                      <div className="flex items-center gap-4 text-lg font-bold">
-                        <span className="line-through text-muted-foreground">{formatBRL(ofertaSubida.somaPrecoNormal)}</span>
-                        <span className="text-primary">por {formatBRL(ofertaSubida.preco)}</span>
-                      </div>
-                      <p className="text-sm">Lucro da oferta: <strong>{formatBRL(ofertaSubida.lucroDinheiro)}</strong></p>
-                      <Button size="sm" onClick={() => saveOferta({
-                        tipo: 'subida_lucro', nome: `${ofertaSubida.pFraco.nome} + ${ofertaSubida.pCoringa.nome}`,
-                        produtoIds: [ofertaSubida.pFraco.id, ofertaSubida.pCoringa.id],
-                        nomesProdutos: [ofertaSubida.pFraco.nome, ofertaSubida.pCoringa.nome],
-                        somaPrecoNormal: ofertaSubida.somaPrecoNormal, precoOferta: ofertaSubida.preco,
-                        cmvTotal: ofertaSubida.cmvTotal, dnaPercent: dnaTotal,
-                        lucroPercent: ofertaSubida.lucroUsadoPct, lucroDinheiro: ofertaSubida.lucroDinheiro,
-                        objetivoEstrategico: 'Elevar margem de produto com baixa lucratividade',
-                        status: 'teste',
-                      })}>Salvar Oferta</Button>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>
