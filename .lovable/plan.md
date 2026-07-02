@@ -1,45 +1,31 @@
-# Corrigir recursão de RLS em `profiles` (bloqueia login do admin)
+# Plano — Corrigir aprovação de novos cadastros (Boteco belem)
 
-## Problema
-As requisições a `profiles` estão retornando **HTTP 500** com:
-`infinite recursion detected in policy for relation "profiles"`.
+## Diagnóstico
 
-Causa: a policy `admin_all_profiles` faz `SELECT role FROM profiles WHERE id = auth.uid()` **dentro** da própria tabela `profiles`, o que dispara a própria policy de novo → recursão. Mesma coisa em `admin_all_state` (que também consulta `profiles`).
+O erro **"Email not confirmed"** e a impossibilidade de aprovar o Boteco vêm de dois problemas somados:
 
-Como o profile não carrega, `useAuth` deixa `profile = null`, `isAdmin = false`, e o link de Admin nunca aparece / a rota `/admin` redireciona pra `/`.
+1. **Confirmação de email obrigatória** — quando o cliente se cadastra pela tela de login, o Supabase exige clicar num link enviado por email. O Boteco nunca confirmou, então o login sempre retorna `400: Email not confirmed`.
+2. **Perfil ficou como "Ativo"** — o trigger cria o profile com `ativo=true` (default). O `UPDATE ativo=false` que o `Login.tsx` faz após o signup é bloqueado pela RLS (usuário ainda sem sessão válida). Resultado: no painel admin ele não aparece como **Pendente** e o botão **Aprovar** não é exibido.
 
-## Solução: SECURITY DEFINER function + policies reescritas
+Como o fluxo desejado é **admin aprova manualmente** (não link de email), a solução é desligar a confirmação por email e fazer o trigger marcar novos clientes como pendentes.
 
-Migração SQL:
+## Solução
 
-1. Criar função `public.is_admin(uid uuid)` `SECURITY DEFINER` que lê `profiles.role` sem disparar RLS:
-   ```sql
-   CREATE OR REPLACE FUNCTION public.is_admin(_uid uuid)
-   RETURNS boolean
-   LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
-   AS $$ SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = _uid AND role = 'admin') $$;
-   ```
+### 1. Configuração de Auth
+- Desativar exigência de confirmação de email (`auto_confirm_email = true`). Novos cadastros já entram logáveis pelo Supabase, mas ficam bloqueados pelo `ativo=false` do profile até o admin aprovar.
 
-2. `DROP POLICY` das policies recursivas em `profiles` e `app_state` e recriar usando a função:
-   ```sql
-   DROP POLICY IF EXISTS admin_all_profiles ON public.profiles;
-   DROP POLICY IF EXISTS own_profile        ON public.profiles;
-   CREATE POLICY own_profile        ON public.profiles FOR ALL TO authenticated
-     USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-   CREATE POLICY admin_all_profiles ON public.profiles FOR ALL TO authenticated
-     USING (public.is_admin(auth.uid())) WITH CHECK (public.is_admin(auth.uid()));
+### 2. Migração no banco
+- Alterar `handle_new_user` para inserir o profile com `ativo = (role = 'admin')` — clientes entram como `false` (Pendente), admins continuam `true`.
+- Backfill dos dados existentes do Boteco: `profiles.ativo=false` + `auth.users.email_confirmed_at=now()` para ele já aparecer como Pendente e conseguir logar depois de aprovado.
 
-   DROP POLICY IF EXISTS admin_all_state ON public.app_state;
-   DROP POLICY IF EXISTS own_state       ON public.app_state;
-   CREATE POLICY own_state       ON public.app_state FOR ALL TO authenticated
-     USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-   CREATE POLICY admin_all_state ON public.app_state FOR ALL TO authenticated
-     USING (public.is_admin(auth.uid())) WITH CHECK (public.is_admin(auth.uid()));
-   ```
+### 3. Frontend — `src/pages/Login.tsx`
+- Remover o `UPDATE ativo=false` pós-signup (hack que não funcionava por RLS). O trigger já garante isso no servidor.
+- Ajustar a mensagem de sucesso do cadastro: *"Cadastro enviado! Aguarde a aprovação do administrador."*
+- Tratar `Email not confirmed` no login com mensagem amigável ("Seu cadastro ainda não foi aprovado"), para o caso de usuários antigos.
 
-3. Garantir que o usuário `contato@mafraads.com.br` está marcado como `role = 'admin'` e `ativo = true` em `profiles` (verifico antes; se estiver como `cliente`, faço UPDATE).
+## Arquivos afetados
+- Configuração de Auth (auto-confirm on).
+- Nova migration SQL (trigger + backfill do Boteco).
+- `src/pages/Login.tsx`.
 
-## Arquivo afetado
-- Nova migração SQL (sem mudanças em código frontend — o `AdminPanel.tsx` e o link já existem; estão apenas escondidos porque o profile não carrega).
-
-Depois da migração, o login do `contato@mafraads.com.br` carregará o profile com `role='admin'` e o menu/rota `/admin` ficará acessível.
+Nenhuma mudança no `AdminPanel` — badge "Pendente" e botão "Aprovar" já existem e passarão a funcionar assim que o profile do Boteco vire `ativo=false`.
