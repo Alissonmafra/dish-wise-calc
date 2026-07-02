@@ -67,7 +67,14 @@ export default function Login() {
     try {
       await signIn(email, password);
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao fazer login');
+      const msg = err.message || '';
+      if (msg.includes('Email not confirmed')) {
+        toast.error('Seu cadastro ainda não foi aprovado pelo administrador.');
+      } else if (msg.includes('Invalid login credentials')) {
+        toast.error('Email ou senha incorretos');
+      } else {
+        toast.error(msg || 'Erro ao fazer login');
+      }
     } finally {
       setLoading(false);
     }
@@ -81,7 +88,7 @@ export default function Login() {
 
     setSLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: sEmail,
         password: sSenha,
         options: {
@@ -91,20 +98,14 @@ export default function Login() {
       });
       if (error) throw error;
 
-      // Marcar como pendente de aprovação (RLS own_profile permite)
-      if (data.user) {
-        await supabase
-          .from('profiles')
-          .update({ ativo: false, nome_restaurante: sNome })
-          .eq('id', data.user.id);
-      }
-
+      // O trigger handle_new_user já cria o profile com ativo=false para clientes.
+      // Deslogamos para o cliente não entrar no sistema antes da aprovação.
       await supabase.auth.signOut();
 
       toast.success('Cadastro enviado! Aguarde a aprovação do administrador para acessar.');
       setSNome(''); setSEmail(''); setSSenha(''); setSSenha2('');
     } catch (err: any) {
-      if (err.message?.includes('already registered') || err.message?.includes('already been registered')) {
+      if (err.message?.includes('already registered') || err.message?.includes('already been registered') || err.message?.includes('User already registered')) {
         toast.error('Este email já está cadastrado');
       } else {
         toast.error(err.message || 'Erro ao cadastrar');
