@@ -324,16 +324,6 @@ function mergeLoaded(raw: any): AppState {
   });
 }
 
-function loadFromLocalStorage(): AppState {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return mergeLoaded(JSON.parse(saved));
-  } catch (e) {
-    localStorage.removeItem(STORAGE_KEY);
-  }
-  return initialState;
-}
-
 interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<Action>;
@@ -344,39 +334,50 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | null>(null);
 
+// Remove legacy shared localStorage cache (previously leaked data between users on the same browser)
+try { localStorage.removeItem(STORAGE_KEY); } catch {}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { user, viewingAsUserId } = useAuth();
-  const [state, dispatch] = useReducer(reducer, null, loadFromLocalStorage);
+  const [state, dispatch] = useReducer(reducer, initialState);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadedRef = useRef<string | null>(null);
 
   const effectiveUserId = viewingAsUserId || user?.id || null;
 
-  // Load from Supabase when user or viewingAsUserId changes
+  // Reset to initial state and reload whenever the active user changes
   useEffect(() => {
-    if (!effectiveUserId) return;
+    if (!effectiveUserId) {
+      loadedRef.current = null;
+      dispatch({ type: 'LOAD_STATE', payload: initialState });
+      return;
+    }
     if (loadedRef.current === effectiveUserId) return;
+
+    // Clear current state before loading the target user's data to avoid cross-user leakage
+    loadedRef.current = null;
+    dispatch({ type: 'LOAD_STATE', payload: initialState });
 
     async function loadFromSupabase() {
       const { data } = await supabase
         .from('app_state')
         .select('state')
         .eq('user_id', effectiveUserId)
-        .single();
+        .maybeSingle();
 
-      if (data?.state) {
-        loadedRef.current = effectiveUserId;
+      loadedRef.current = effectiveUserId;
+      if (data?.state && Object.keys(data.state as any).length > 0) {
         dispatch({ type: 'LOAD_STATE', payload: mergeLoaded(data.state) });
-      } else {
-        loadedRef.current = effectiveUserId;
       }
     }
     loadFromSupabase();
   }, [effectiveUserId]);
 
-  // Debounced save to Supabase (skip when viewing as another user — don't overwrite their data unintentionally)
+  // Debounced save to Supabase — only after the current user's state has finished loading,
+  // and never while impersonating another user.
   useEffect(() => {
     if (!user?.id || viewingAsUserId) return;
+    if (loadedRef.current !== user.id) return;
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
