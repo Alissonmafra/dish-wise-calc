@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Trash2, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { formatBRL, formatPercent } from '@/lib/formatters';
+import type { LucroAtualEntrada } from '@/types';
 
 interface LinhaLucro {
   id: string;
@@ -15,17 +16,28 @@ interface LinhaLucro {
   entrega: number;
 }
 
+const emptyLinha = (): LinhaLucro => ({ id: crypto.randomUUID(), produtoId: '', vendaAtual: '', entrega: 0 });
+
+function entradaToLinha(e: LucroAtualEntrada): LinhaLucro {
+  return { id: crypto.randomUUID(), produtoId: e.produtoId, vendaAtual: e.vendaAtual || '', entrega: e.entrega ?? 0 };
+}
+
 export default function LucroAtual() {
-  const { state, dnaTotal } = useApp();
+  const { state, dnaTotal, dispatch } = useApp();
 
   const produtosComFicha = state.produtos.filter(p => p.cmv > 0);
+  const isInitialMount = useRef(true);
 
-  const [linhas, setLinhas] = useState<LinhaLucro[]>([
-    { id: crypto.randomUUID(), produtoId: '', vendaAtual: '', entrega: 0 },
-  ]);
+  // Hidratar linhas a partir de lucrosAtuais salvos
+  const [linhas, setLinhas] = useState<LinhaLucro[]>(() => {
+    if (state.lucrosAtuais.length > 0) {
+      return state.lucrosAtuais.map(entradaToLinha);
+    }
+    return [emptyLinha()];
+  });
 
   const addLinha = () =>
-    setLinhas(prev => [...prev, { id: crypto.randomUUID(), produtoId: '', vendaAtual: '', entrega: 0 }]);
+    setLinhas(prev => [...prev, emptyLinha()]);
 
   const removeLinha = (id: string) =>
     setLinhas(prev => prev.filter(l => l.id !== id));
@@ -50,6 +62,24 @@ export default function LucroAtual() {
     linhasValidas.length > 0
       ? linhasValidas.reduce((s, l) => s + (l.pct ?? 0), 0) / linhasValidas.length
       : null;
+
+  // Auto-salvar no estado global (persistido) quando as linhas mudam
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    const entradas: LucroAtualEntrada[] = linhas
+      .filter(l => !!l.produtoId)
+      .map(l => ({
+        produtoId: l.produtoId,
+        vendaAtual: typeof l.vendaAtual === 'number' ? l.vendaAtual : 0,
+        entrega: l.entrega || undefined,
+      }));
+
+    dispatch({ type: 'SET_LUCROS_ATUAIS', payload: entradas });
+  }, [linhas, dispatch]);
 
   return (
     <div className="space-y-6">

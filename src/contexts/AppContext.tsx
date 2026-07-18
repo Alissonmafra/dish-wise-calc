@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useMemo, useRef } from 'react';
-import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis, SimplesNacional, PrecoProduto, VendaDia, Oferta, QuadrantesOfertas } from '@/types';
+import type { AppState, DespesaFixa, FaturamentoMensal, DNAEmpresa, Insumo, ReceitaManipulacao, ProdutoCardapio, Combo, FechamentoDia, ItemCardapio, ItemManipulado, DREState, DiagnosticoResposta, CustosInvisiveis, SimplesNacional, PrecoProduto, LucroAtualEntrada, VendaDia, Oferta, QuadrantesOfertas } from '@/types';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
 import { calcularImpostoSimples } from '@/lib/simplesNacionalCalc';
 import { supabase } from '@/integrations/supabase/client';
@@ -227,6 +227,7 @@ const initialState: AppState = recompute({
   simplesNacional: { anexo: 'I', rbt12Manual: 0, modoSimulacao: true },
   diagnosticoRespostas: [],
   precosProdutos: [],
+  lucrosAtuais: [],
   vendas: [],
   ofertas: [],
   quadrantesOfertas: { maisVendidos: [], menosVendidos: [], maisLucrativos: [], menosLucrativos: [] },
@@ -248,6 +249,7 @@ type Action =
   | { type: 'SET_DIAGNOSTICO'; payload: DiagnosticoResposta[] }
   | { type: 'SET_SIMPLES_NACIONAL'; payload: SimplesNacional }
   | { type: 'SET_PRECOS_PRODUTOS'; payload: PrecoProduto[] }
+  | { type: 'SET_LUCROS_ATUAIS'; payload: LucroAtualEntrada[] }
   | { type: 'ADD_VENDA'; payload: VendaDia }
   | { type: 'REMOVE_VENDA'; payload: string }
   | { type: 'SET_VENDAS'; payload: VendaDia[] }
@@ -275,6 +277,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_DIAGNOSTICO': return { ...state, diagnosticoRespostas: action.payload };
     case 'SET_SIMPLES_NACIONAL': return { ...state, simplesNacional: action.payload };
     case 'SET_PRECOS_PRODUTOS': return { ...state, precosProdutos: action.payload };
+    case 'SET_LUCROS_ATUAIS': return { ...state, lucrosAtuais: action.payload };
     case 'ADD_VENDA': return { ...state, vendas: [...state.vendas, action.payload] };
     case 'REMOVE_VENDA': return { ...state, vendas: state.vendas.filter(v => v.id !== action.payload) };
     case 'SET_VENDAS': return { ...state, vendas: action.payload };
@@ -316,6 +319,7 @@ function mergeLoaded(raw: any): AppState {
     simplesNacional: raw.simplesNacional ? { ...initialState.simplesNacional, ...raw.simplesNacional } : initialState.simplesNacional,
     diagnosticoRespostas: raw.diagnosticoRespostas || [],
     precosProdutos: Array.isArray(raw.precosProdutos) ? raw.precosProdutos : [],
+    lucrosAtuais: Array.isArray(raw.lucrosAtuais) ? raw.lucrosAtuais : [],
     vendas: Array.isArray(raw.vendas) ? raw.vendas : [],
     ofertas: Array.isArray(raw.ofertas) ? raw.ofertas : [],
     quadrantesOfertas: raw.quadrantesOfertas

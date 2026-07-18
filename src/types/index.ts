@@ -180,6 +180,12 @@ export interface PrecoProduto {
   cupomFantasma?: number;
 }
 
+export interface LucroAtualEntrada {
+  produtoId: string;
+  vendaAtual: number;
+  entrega?: number;
+}
+
 export type CanalVenda = 'balcao' | 'delivery' | 'ifood' | 'fantasma';
 
 export interface VendaDia {
@@ -254,6 +260,7 @@ export interface AppState {
   dre: DREState;
   simplesNacional: SimplesNacional;
   precosProdutos: PrecoProduto[];
+  lucrosAtuais: LucroAtualEntrada[];
   vendas: VendaDia[];
   diagnosticoRespostas: DiagnosticoResposta[];
   ofertas: Oferta[];
