@@ -8,8 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Eye, EyeOff, ToggleLeft, ToggleRight, Users, RefreshCw, Pencil, Check, X, UserPlus, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, ToggleLeft, ToggleRight, Users, RefreshCw, Pencil, Check, X, UserPlus, CheckCircle2, CopyPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Cliente temporário sem persistência de sessão — usado só para criar usuários
@@ -23,7 +27,7 @@ function createTempClient() {
 }
 
 export default function AdminPanel() {
-  const { setViewingAs } = useAuth();
+  const { user, setViewingAs } = useAuth();
   const navigate = useNavigate();
 
   const [clientes, setClientes]   = useState<Profile[]>([]);
@@ -32,6 +36,8 @@ export default function AdminPanel() {
   const [showForm, setShowForm]   = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editNome, setEditNome]   = useState('');
+  const [copyTarget, setCopyTarget] = useState<Profile | null>(null);
+  const [copying, setCopying]       = useState(false);
 
   const [formEmail, setFormEmail] = useState('');
   const [formSenha, setFormSenha] = useState('');
@@ -134,6 +140,35 @@ export default function AdminPanel() {
   function acessarComoCliente(clienteId: string) {
     setViewingAs(clienteId);
     navigate('/');
+  }
+
+  async function confirmarCopiaDados() {
+    if (!copyTarget || !user?.id) return;
+    setCopying(true);
+    try {
+      const { data: adminState, error: e1 } = await supabase
+        .from('app_state')
+        .select('state')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (e1) throw e1;
+      if (!adminState?.state) throw new Error('Não há dados na conta Admin para copiar');
+
+      const { error: e2 } = await supabase
+        .from('app_state')
+        .upsert(
+          { user_id: copyTarget.id, state: adminState.state, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id' }
+        );
+      if (e2) throw e2;
+
+      toast.success(`Dados copiados para "${copyTarget.nome_restaurante}"`);
+      setCopyTarget(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao copiar dados');
+    } finally {
+      setCopying(false);
+    }
   }
 
   function formatDate(d: string | null) {
@@ -337,6 +372,9 @@ export default function AdminPanel() {
                         <Button size="sm" variant="ghost" title="Visualizar como este cliente" onClick={() => acessarComoCliente(cliente.id)}>
                           <Eye className="h-4 w-4" />
                         </Button>
+                        <Button size="sm" variant="ghost" title="Copiar meus dados (Admin) para este cliente" onClick={() => setCopyTarget(cliente)}>
+                          <CopyPlus className="h-4 w-4 text-blue-600" />
+                        </Button>
                         <Button size="sm" variant="ghost" title={cliente.ativo ? 'Desativar' : 'Ativar'} onClick={() => toggleAtivo(cliente)}>
                           {cliente.ativo
                             ? <ToggleRight className="h-4 w-4 text-green-600" />
@@ -351,6 +389,25 @@ export default function AdminPanel() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!copyTarget} onOpenChange={(open) => !open && setCopyTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Copiar dados da conta Admin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso vai <strong>substituir permanentemente</strong> todos os dados atuais de{' '}
+              <strong>{copyTarget?.nome_restaurante}</strong> pelos dados lançados hoje na sua conta Admin
+              (insumos, fichas técnicas, produtos, DRE, etc). Essa ação não pode ser desfeita. Confirmar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={copying}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarCopiaDados} disabled={copying}>
+              {copying ? 'Copiando...' : 'Sim, substituir dados do cliente'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
