@@ -3,9 +3,37 @@ import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Download } from 'lucide-react';
 
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+// Faixas de referência do "DRE Ideal" para restaurantes (benchmark do setor)
+interface Benchmark {
+  label: string;
+  min: number;
+  max: number;
+  descricao: string;
+  /** true = quanto maior melhor (ex: resultado); false = quanto menor melhor (ex: custo/despesa) */
+  ehResultado?: boolean;
+}
+
+const BENCHMARKS: Benchmark[] = [
+  { label: 'Impostos', min: 6, max: 10, descricao: 'Média do Simples Nacional (ideal ≈ 8%)' },
+  { label: 'CMV (Custo de Produção)', min: 50, max: 57, descricao: 'Ingredientes + salários produção + pró-labore' },
+  { label: 'Despesas Operacionais', min: 20, max: 30, descricao: 'Aluguel + energia + marketing + admin + financeiro (ideal ≈ 25%)' },
+  { label: 'Resultado Operacional (EBITDA)', min: 20, max: 27, descricao: 'Caixa gerado pela operação do restaurante', ehResultado: true },
+];
+
+function avaliarBenchmark(valor: number, b: Benchmark): { emoji: string; status: string; texto: string } {
+  if (b.ehResultado) {
+    if (valor < b.min) return { emoji: '🚨', status: 'Abaixo do ideal', texto: `Está em ${valor.toFixed(1)}%, abaixo da faixa saudável (${b.min}-${b.max}%). Revise custos e despesas.` };
+    return { emoji: '✅', status: valor > b.max ? 'Acima do ideal' : 'Dentro da faixa', texto: `Está em ${valor.toFixed(1)}%, ${valor > b.max ? 'acima da faixa de referência — ótimo sinal' : `dentro da faixa saudável (${b.min}-${b.max}%)`}.` };
+  }
+  if (valor > b.max) return { emoji: '🚨', status: 'Acima do ideal', texto: `Está em ${valor.toFixed(1)}%, acima da faixa saudável (${b.min}-${b.max}%). Isso está corroendo sua margem.` };
+  if (valor < b.min) return { emoji: '⚠️', status: 'Abaixo do normal', texto: `Está em ${valor.toFixed(1)}%, abaixo da faixa usual (${b.min}-${b.max}%). Vale checar se todos os custos estão sendo lançados.` };
+  return { emoji: '✅', status: 'Dentro da faixa', texto: `Está em ${valor.toFixed(1)}%, dentro da faixa saudável (${b.min}-${b.max}%).` };
+}
 
 // Keys for editable lines (manual R$ input)
 const EDITABLE_KEYS = [
@@ -160,6 +188,34 @@ export default function DREAnual() {
     });
   }, [vals]);
 
+  // Leitura da situação atual: compara os % médios do ano contra as faixas de referência
+  const diagnosticoDRE = useMemo(() => {
+    const fatTotal = sumArr(vals.fatBruto || Array(12).fill(0));
+    if (fatTotal <= 0) return null;
+
+    const somaAno = (keys: EditableKey[]) =>
+      keys.reduce((s, k) => s + sumArr(vals[k] || Array(12).fill(0)), 0);
+
+    const impostosTotal = somaAno(['impostos']);
+    const cmvTotal = somaAno(['ingredientes', 'salariosProd', 'proLabore', 'bebidasRevenda']);
+    const despOpTotal = somaAno(['aluguel', 'aguaLuz', 'outrosInfra', 'honorariosAgencia', 'midiaSocial', 'marketing',
+      'contabilidade', 'limpezaEscritorio', 'outrosAdmin', 'reformas', 'emprestimos', 'taxaMaquininha', 'reservaCaixa']);
+    const resultadoOperacional = fatTotal - impostosTotal - cmvTotal - despOpTotal;
+
+    const valores = {
+      'Impostos': (impostosTotal / fatTotal) * 100,
+      'CMV (Custo de Produção)': (cmvTotal / fatTotal) * 100,
+      'Despesas Operacionais': (despOpTotal / fatTotal) * 100,
+      'Resultado Operacional (EBITDA)': (resultadoOperacional / fatTotal) * 100,
+    };
+
+    const linhas = BENCHMARKS.map(b => ({ benchmark: b, valor: valores[b.label], ...avaliarBenchmark(valores[b.label], b) }));
+    const alertas = linhas.filter(l => l.emoji === '🚨').length;
+    const atencoes = linhas.filter(l => l.emoji === '⚠️').length;
+
+    return { linhas, alertas, atencoes };
+  }, [vals]);
+
   const updateVal = (key: EditableKey, month: number, val: number) => {
     const arr = [...(vals[key] || Array(12).fill(0))];
     arr[month] = val;
@@ -262,6 +318,42 @@ export default function DREAnual() {
               </tbody>
             </table>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Leitura da Situação Atual</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!diagnosticoDRE ? (
+            <p className="text-muted-foreground text-sm">Lance o Faturamento Bruto de ao menos um mês para ver a leitura automática.</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {diagnosticoDRE.linhas.map(l => (
+                  <div key={l.benchmark.label} className="border rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground mb-1">{l.benchmark.label}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold">{l.valor.toFixed(1)}%</span>
+                      <Badge variant={l.emoji === '✅' ? 'default' : l.emoji === '🚨' ? 'destructive' : 'secondary'}>
+                        {l.emoji} {l.status}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{l.texto}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm font-medium">
+                {diagnosticoDRE.alertas === 0 && diagnosticoDRE.atencoes === 0 && '🟢 Sua estrutura de custos está alinhada com o padrão saudável do setor.'}
+                {diagnosticoDRE.alertas > 0 && `🔴 ${diagnosticoDRE.alertas} ponto(s) crítico(s) — priorize a correção deles antes de investir em crescimento.`}
+                {diagnosticoDRE.alertas === 0 && diagnosticoDRE.atencoes > 0 && `🟡 ${diagnosticoDRE.atencoes} ponto(s) de atenção — vale investigar antes que virem problema.`}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Nota: hoje EBITDA e Lucro Líquido são calculados da mesma forma no sistema (sem linha separada para depreciação/despesas financeiras/IR), por isso a leitura acima usa apenas "Resultado Operacional".
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
