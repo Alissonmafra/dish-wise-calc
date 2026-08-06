@@ -195,25 +195,43 @@ export default function ImpostosTab() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Info className="h-4 w-4" /> Como funciona o cálculo
+              <Info className="h-4 w-4" /> {isMEI ? 'Como funciona o MEI' : 'Como funciona o cálculo'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              No Simples Nacional, a alíquota do mês <strong className="text-foreground">não é a alíquota nominal da faixa</strong>.
-              O cálculo correto usa a <strong className="text-foreground">alíquota efetiva</strong>.
-            </p>
-            <div className="p-3 bg-muted rounded-lg font-mono text-xs">
-              <p>Alíquota Efetiva = ((RBT12 × Alíquota Nominal) − Parcela a Deduzir) ÷ RBT12</p>
-              <p className="mt-1">Imposto do Mês = Faturamento Mensal × Alíquota Efetiva</p>
-            </div>
-            <p>
-              A <strong className="text-foreground">RBT12</strong> é a receita bruta acumulada nos 12 meses anteriores ao período de apuração.
-              Ela determina a faixa da tabela e, consequentemente, a alíquota nominal e a parcela a deduzir.
-            </p>
-            <p className="text-xs">
-              ⚠️ Usar a alíquota nominal diretamente pode <strong className="text-foreground">superestimar o imposto</strong> e distorcer a margem real do negócio.
-            </p>
+            {isMEI ? (
+              <>
+                <p>
+                  O MEI recolhe um <strong className="text-foreground">valor fixo mensal (DAS)</strong>, e não um percentual
+                  sobre o faturamento. Por isso a alíquota usada na precificação é 0% e o DNA da Empresa não carrega imposto.
+                </p>
+                <p>
+                  O valor do DAS é um <strong className="text-foreground">custo fixo</strong>: se quiser considerá-lo no preço,
+                  cadastre-o em Despesas Fixas.
+                </p>
+                <p className="text-xs">
+                  ⚠️ Limite de faturamento do MEI: R$ 81.000,00 por ano. Ao ultrapassar, é necessário migrar para o Simples Nacional.
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  No Simples Nacional, a alíquota do mês <strong className="text-foreground">não é a alíquota nominal da faixa</strong>.
+                  O cálculo correto usa a <strong className="text-foreground">alíquota efetiva</strong>.
+                </p>
+                <div className="p-3 bg-muted rounded-lg font-mono text-xs">
+                  <p>Alíquota Efetiva = ((RBT12 × Alíquota Nominal) − Parcela a Deduzir) ÷ RBT12</p>
+                  <p className="mt-1">Imposto do Mês = Faturamento Mensal × Alíquota Efetiva</p>
+                </div>
+                <p>
+                  A <strong className="text-foreground">RBT12</strong> é a receita bruta acumulada nos 12 meses anteriores ao período de apuração.
+                  Ela determina a faixa da tabela e, consequentemente, a alíquota nominal e a parcela a deduzir.
+                </p>
+                <p className="text-xs">
+                  ⚠️ Usar a alíquota nominal diretamente pode <strong className="text-foreground">superestimar o imposto</strong> e distorcer a margem real do negócio.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
