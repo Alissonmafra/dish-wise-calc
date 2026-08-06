@@ -146,28 +146,48 @@ export default function ImpostosTab() {
         <Card>
           <CardHeader><CardTitle className="text-base">Resultado do Cálculo</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground">Faixa Enquadrada</p>
-                <p className="text-sm font-semibold">{resultado.faixa}</p>
+            {isMEI ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-muted rounded-lg col-span-2">
+                  <p className="text-xs text-muted-foreground">Enquadramento</p>
+                  <p className="text-sm font-semibold">{resultado.faixa}</p>
+                </div>
+                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <p className="text-xs text-muted-foreground font-semibold">Alíquota Efetiva</p>
+                  <p className="text-2xl font-bold text-primary">0,00%</p>
+                </div>
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-xs text-muted-foreground">DAS mensal (informativo)</p>
+                  <p className="text-2xl font-bold">{formatBRL(sn.dasMensal || 0)}</p>
+                  <p className="text-[10px] text-muted-foreground">Não entra no percentual do DNA</p>
+                </div>
               </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground">Alíquota Nominal</p>
-                <p className="text-lg font-bold">{formatPercent(resultado.aliquotaNominal)}</p>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground">Parcela a Deduzir</p>
-                <p className="text-lg font-bold">{formatBRL(resultado.parcelaADeduzir)}</p>
-              </div>
-              <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                <p className="text-xs text-muted-foreground font-semibold">Alíquota Efetiva</p>
-                <p className="text-2xl font-bold text-primary">{formatPercent(resultado.aliquotaEfetiva)}</p>
-              </div>
-            </div>
-            <div className="p-4 bg-primary/10 rounded-lg border border-primary/20 text-center">
-              <p className="text-xs text-muted-foreground">Imposto do Mês</p>
-              <p className="text-3xl font-bold text-primary">{formatBRL(resultado.impostoMensal)}</p>
-            </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-xs text-muted-foreground">Faixa Enquadrada</p>
+                    <p className="text-sm font-semibold">{resultado.faixa}</p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-xs text-muted-foreground">Alíquota Nominal</p>
+                    <p className="text-lg font-bold">{formatPercent(resultado.aliquotaNominal)}</p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-xs text-muted-foreground">Parcela a Deduzir</p>
+                    <p className="text-lg font-bold">{formatBRL(resultado.parcelaADeduzir)}</p>
+                  </div>
+                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                    <p className="text-xs text-muted-foreground font-semibold">Alíquota Efetiva</p>
+                    <p className="text-2xl font-bold text-primary">{formatPercent(resultado.aliquotaEfetiva)}</p>
+                  </div>
+                </div>
+                <div className="p-4 bg-primary/10 rounded-lg border border-primary/20 text-center">
+                  <p className="text-xs text-muted-foreground">Imposto do Mês</p>
+                  <p className="text-3xl font-bold text-primary">{formatBRL(resultado.impostoMensal)}</p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
