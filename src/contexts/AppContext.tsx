@@ -224,7 +224,7 @@ const initialState: AppState = recompute({
       ].map(k => [k, Array(12).fill(0)])
     ),
   },
-  simplesNacional: { anexo: 'I', rbt12Manual: 0, modoSimulacao: true },
+  simplesNacional: { anexo: 'I', rbt12Manual: 0, modoSimulacao: true, regime: 'SIMPLES', dasMensal: 0 },
   diagnosticoRespostas: [],
   precosProdutos: [],
   lucrosAtuais: [],
