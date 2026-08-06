@@ -236,6 +236,8 @@ export interface SimplesNacional {
   anexo: string; // 'I' | 'II' | 'III' | 'IV' | 'V' | ''
   rbt12Manual: number;
   modoSimulacao: boolean;
+  regime: 'MEI' | 'SIMPLES';
+  dasMensal: number;
 }
 
 export interface QuadrantesOfertas {
