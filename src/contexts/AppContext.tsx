@@ -277,7 +277,7 @@ function reducer(state: AppState, action: Action): AppState {
     case 'SET_CUSTOS_INVISIVEIS': return recompute({ ...state, custosInvisiveis: action.payload });
     case 'SET_DRE': return { ...state, dre: action.payload };
     case 'SET_DIAGNOSTICO': return { ...state, diagnosticoRespostas: action.payload };
-    case 'SET_SIMPLES_NACIONAL': return { ...state, simplesNacional: action.payload };
+    case 'SET_SIMPLES_NACIONAL': return recompute({ ...state, simplesNacional: action.payload });
     case 'SET_PRECOS_PRODUTOS': return { ...state, precosProdutos: action.payload };
     case 'SET_LUCROS_ATUAIS': return { ...state, lucrosAtuais: action.payload };
     case 'ADD_VENDA': return { ...state, vendas: [...state.vendas, action.payload] };
