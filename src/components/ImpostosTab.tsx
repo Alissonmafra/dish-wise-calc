@@ -20,35 +20,33 @@ export default function ImpostosTab() {
     dispatch({ type: 'SET_SIMPLES_NACIONAL', payload: { ...sn, ...update } });
   };
 
+  const isMEI = sn.regime === 'MEI';
   const faturamentoMensal = mediaFaturamento;
   const rbt12 = sn.modoSimulacao ? faturamentoMensal * 12 : sn.rbt12Manual;
 
   const resultado = useMemo(
-    () => calcularImpostoSimples(faturamentoMensal, rbt12, sn.anexo),
-    [faturamentoMensal, rbt12, sn.anexo]
+    () => calcularImpostoSimples(faturamentoMensal, rbt12, sn.anexo, sn.regime),
+    [faturamentoMensal, rbt12, sn.anexo, sn.regime]
   );
 
-  const tabela = useMemo(() => obterTabela(sn.anexo), [sn.anexo]);
+  const tabela = useMemo(() => (isMEI ? [] : obterTabela(sn.anexo)), [sn.anexo, isMEI]);
 
   return (
     <div className="space-y-4">
       {/* Configuração */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Configuração do Simples Nacional</CardTitle>
+          <CardTitle className="text-base">Configuração Tributária</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label>Anexo do Simples Nacional</Label>
-              <Select value={sn.anexo} onValueChange={v => updateSN({ anexo: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecione o anexo" /></SelectTrigger>
+              <Label>Regime Tributário</Label>
+              <Select value={sn.regime} onValueChange={(v: 'MEI' | 'SIMPLES') => updateSN({ regime: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {ANEXOS.map(a => (
-                    <SelectItem key={a} value={a}>
-                      Anexo {a} {a !== 'I' ? '(em breve)' : ''}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="MEI">MEI</SelectItem>
+                  <SelectItem value="SIMPLES">Simples Nacional</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -61,31 +59,73 @@ export default function ImpostosTab() {
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Switch checked={sn.modoSimulacao} onCheckedChange={v => updateSN({ modoSimulacao: v })} />
-                <Label className="cursor-pointer">Modo Simulação</Label>
+            {isMEI ? (
+              <div>
+                <Label>Valor do DAS mensal (R$) — informativo</Label>
+                <Input
+                  type="number"
+                  value={sn.dasMensal || ''}
+                  onChange={e => updateSN({ dasMensal: parseFloat(e.target.value) || 0 })}
+                  placeholder="Ex: 75.90"
+                />
               </div>
-              {sn.modoSimulacao ? (
-                <div className="p-2 bg-muted rounded-md text-sm">
-                  <p className="font-medium">RBT12 Estimado: {formatBRL(rbt12)}</p>
-                  <p className="text-xs text-muted-foreground">Faturamento mensal × 12</p>
-                </div>
-              ) : (
-                <div>
-                  <Label>RBT12 Manual (R$)</Label>
-                  <Input
-                    type="number"
-                    value={sn.rbt12Manual || ''}
-                    onChange={e => updateSN({ rbt12Manual: parseFloat(e.target.value) || 0 })}
-                    placeholder="Receita bruta acumulada 12 meses"
-                  />
-                </div>
-              )}
-            </div>
+            ) : null}
           </div>
+
+          {!isMEI && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Anexo do Simples Nacional</Label>
+                <Select value={sn.anexo} onValueChange={v => updateSN({ anexo: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o anexo" /></SelectTrigger>
+                  <SelectContent>
+                    {ANEXOS.map(a => (
+                      <SelectItem key={a} value={a}>
+                        Anexo {a} {a !== 'I' ? '(em breve)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <Switch checked={sn.modoSimulacao} onCheckedChange={v => updateSN({ modoSimulacao: v })} />
+                  <Label className="cursor-pointer">Modo Simulação</Label>
+                </div>
+                {sn.modoSimulacao ? (
+                  <div className="p-2 bg-muted rounded-md text-sm">
+                    <p className="font-medium">RBT12 Estimado: {formatBRL(rbt12)}</p>
+                    <p className="text-xs text-muted-foreground">Faturamento mensal × 12</p>
+                  </div>
+                ) : (
+                  <div>
+                    <Label>RBT12 Manual (R$)</Label>
+                    <Input
+                      type="number"
+                      value={sn.rbt12Manual || ''}
+                      onChange={e => updateSN({ rbt12Manual: parseFloat(e.target.value) || 0 })}
+                      placeholder="Receita bruta acumulada 12 meses"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {isMEI && (
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                O <strong className="text-foreground">MEI não paga alíquota percentual</strong> sobre o faturamento —
+                o imposto é um valor fixo mensal (DAS). Por isso a alíquota efetiva usada na precificação é{' '}
+                <strong className="text-foreground">0%</strong>.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
+
 
       {/* Alertas */}
       {resultado.alertas.length > 0 && (
