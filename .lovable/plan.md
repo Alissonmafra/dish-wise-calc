@@ -1,31 +1,29 @@
-# Plano — Corrigir aprovação de novos cadastros (Boteco belem)
+# Opção MEI — imposto 0% no DNA
 
-## Diagnóstico
+## Objetivo
 
-O erro **"Email not confirmed"** e a impossibilidade de aprovar o Boteco vêm de dois problemas somados:
+Permitir marcar que a empresa é **MEI**. Nesse caso o imposto do Simples Nacional deixa de ser calculado por alíquota efetiva e passa a **0%** em todo o sistema (DNA, preço de venda, Mini-DRE, DRE, ofertas etc.), já que o MEI paga um valor fixo mensal (DAS) e não um percentual sobre o faturamento.
 
-1. **Confirmação de email obrigatória** — quando o cliente se cadastra pela tela de login, o Supabase exige clicar num link enviado por email. O Boteco nunca confirmou, então o login sempre retorna `400: Email not confirmed`.
-2. **Perfil ficou como "Ativo"** — o trigger cria o profile com `ativo=true` (default). O `UPDATE ativo=false` que o `Login.tsx` faz após o signup é bloqueado pela RLS (usuário ainda sem sessão válida). Resultado: no painel admin ele não aparece como **Pendente** e o botão **Aprovar** não é exibido.
+## O que muda na tela
 
-Como o fluxo desejado é **admin aprova manualmente** (não link de email), a solução é desligar a confirmação por email e fazer o trigger marcar novos clientes como pendentes.
+Na aba **Impostos** (Financeiro), no topo da configuração:
 
-## Solução
+- Novo seletor **Regime Tributário**: `MEI` ou `Simples Nacional`.
+- Ao escolher **MEI**:
+  - Os campos de Anexo, RBT12 e Modo Simulação ficam ocultos.
+  - Aparece um card explicando: "MEI não paga alíquota percentual sobre o faturamento — o imposto é um valor fixo mensal (DAS). Alíquota efetiva = 0%."
+  - Resultado do cálculo mostra **0,00%** de alíquota efetiva e **R$ 0,00** de imposto do mês.
+  - Campo opcional **Valor do DAS mensal (R$)** apenas informativo, exibido junto ao resultado (não entra no percentual do DNA).
+  - Alerta se o faturamento anual ultrapassar o limite do MEI (R$ 81.000), sugerindo revisar o enquadramento.
+- Ao escolher **Simples Nacional**: comportamento atual, sem alteração.
 
-### 1. Configuração de Auth
-- Desativar exigência de confirmação de email (`auto_confirm_email = true`). Novos cadastros já entram logáveis pelo Supabase, mas ficam bloqueados pelo `ativo=false` do profile até o admin aprovar.
+Na aba **DNA da Empresa**, o card "Impostos (%) — automático" passa a mostrar `0.00%` com a legenda "MEI — isento de alíquota percentual".
 
-### 2. Migração no banco
-- Alterar `handle_new_user` para inserir o profile com `ativo = (role = 'admin')` — clientes entram como `false` (Pendente), admins continuam `true`.
-- Backfill dos dados existentes do Boteco: `profiles.ativo=false` + `auth.users.email_confirmed_at=now()` para ele já aparecer como Pendente e conseguir logar depois de aprovado.
+## Detalhes técnicos
 
-### 3. Frontend — `src/pages/Login.tsx`
-- Remover o `UPDATE ativo=false` pós-signup (hack que não funcionava por RLS). O trigger já garante isso no servidor.
-- Ajustar a mensagem de sucesso do cadastro: *"Cadastro enviado! Aguarde a aprovação do administrador."*
-- Tratar `Email not confirmed` no login com mensagem amigável ("Seu cadastro ainda não foi aprovado"), para o caso de usuários antigos.
-
-## Arquivos afetados
-- Configuração de Auth (auto-confirm on).
-- Nova migration SQL (trigger + backfill do Boteco).
-- `src/pages/Login.tsx`.
-
-Nenhuma mudança no `AdminPanel` — badge "Pendente" e botão "Aprovar" já existem e passarão a funcionar assim que o profile do Boteco vire `ativo=false`.
+- `src/types/index.ts`: adicionar `regime: 'MEI' | 'SIMPLES'` e `dasMensal: number` em `SimplesNacional`.
+- `src/contexts/AppContext.tsx`: default `regime: 'SIMPLES'`, `dasMensal: 0` no `initialState` e no deep-merge de hidratação (dados legados continuam como Simples). No cálculo do DNA (linhas ~92-108), quando `regime === 'MEI'` forçar `impostos = 0` sem chamar `calcularImpostoSimples`.
+- `src/lib/simplesNacionalCalc.ts`: aceitar o regime e retornar resultado zerado (com alerta do limite de R$ 81.000 quando aplicável) para MEI, mantendo a lógica atual para Simples.
+- `src/components/ImpostosTab.tsx`: seletor de regime + renderização condicional descrita acima.
+- `src/pages/MiniDRE.tsx`: usa `calcularImpostoSimples`; passa a respeitar o regime (0% para MEI).
+- Verificar demais consumidores de `dna.impostos` — como o valor vem do contexto já zerado, propagam automaticamente.
