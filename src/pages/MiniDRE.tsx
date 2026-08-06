@@ -24,9 +24,10 @@ export default function MiniDRE() {
   // Get effective tax rate from Simples Nacional
   const taxaImpostos = useMemo(() => {
     const sn = state.simplesNacional;
+    if (sn.regime === 'MEI') return 0;
     if (sn.anexo) {
       const rbt12 = sn.modoSimulacao ? mediaFaturamento * 12 : sn.rbt12Manual;
-      const res = calcularImpostoSimples(mediaFaturamento, rbt12, sn.anexo);
+      const res = calcularImpostoSimples(mediaFaturamento, rbt12, sn.anexo, sn.regime);
       if (res.aliquotaEfetiva > 0) return res.aliquotaEfetiva;
     }
     return state.dnaEmpresa.impostos;

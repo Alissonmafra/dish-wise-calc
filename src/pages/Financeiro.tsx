@@ -592,7 +592,11 @@ export default function Financeiro() {
                 <div className="p-4 bg-muted rounded-lg">
                   <p className="text-xs text-muted-foreground">Impostos (%) — automático</p>
                   <p className="text-2xl font-bold">{formatPercent(dna.impostos)}</p>
-                  <p className="text-[10px] text-muted-foreground">Alíquota efetiva do Simples Nacional</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {state.simplesNacional.regime === 'MEI'
+                      ? 'MEI — isento de alíquota percentual'
+                      : 'Alíquota efetiva do Simples Nacional'}
+                  </p>
                 </div>
               </div>
 

@@ -32,12 +32,31 @@ export function obterTabela(anexo: string): FaixaSimplesNacional[] {
   return tabelas[anexo] || [];
 }
 
+export const LIMITE_MEI = 81000;
+
 export function calcularImpostoSimples(
   faturamentoMensal: number,
   rbt12: number,
-  anexo: string
+  anexo: string,
+  regime: 'MEI' | 'SIMPLES' = 'SIMPLES'
 ): ResultadoSimples {
   const alertas: string[] = [];
+
+  if (regime === 'MEI') {
+    if (faturamentoMensal * 12 > LIMITE_MEI) {
+      alertas.push(
+        `O faturamento anual estimado ultrapassa o limite do MEI (R$ ${LIMITE_MEI.toLocaleString('pt-BR')}). Revise o enquadramento tributário.`
+      );
+    }
+    return {
+      faixa: 'MEI — valor fixo mensal (DAS)',
+      aliquotaNominal: 0,
+      parcelaADeduzir: 0,
+      aliquotaEfetiva: 0,
+      impostoMensal: 0,
+      alertas,
+    };
+  }
 
   if (!anexo) {
     alertas.push('Anexo do Simples Nacional não definido.');

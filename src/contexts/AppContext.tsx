@@ -91,7 +91,9 @@ function recompute(state: AppState): AppState {
 
   const sn = state.simplesNacional;
   let impostos = state.dnaEmpresa.impostos;
-  if (sn.anexo) {
+  if (sn.regime === 'MEI') {
+    impostos = 0;
+  } else if (sn.anexo) {
     const fatValues = state.faturamento.filter(f => f.valor > 0);
     const mediaFat = fatValues.length > 0 ? fatValues.reduce((s, f) => s + f.valor, 0) / fatValues.length : 0;
     const rbt12 = sn.modoSimulacao ? mediaFat * 12 : sn.rbt12Manual;
@@ -224,7 +226,7 @@ const initialState: AppState = recompute({
       ].map(k => [k, Array(12).fill(0)])
     ),
   },
-  simplesNacional: { anexo: 'I', rbt12Manual: 0, modoSimulacao: true },
+  simplesNacional: { anexo: 'I', rbt12Manual: 0, modoSimulacao: true, regime: 'SIMPLES', dasMensal: 0 },
   diagnosticoRespostas: [],
   precosProdutos: [],
   lucrosAtuais: [],
