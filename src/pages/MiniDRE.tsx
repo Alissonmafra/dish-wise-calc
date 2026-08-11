@@ -106,7 +106,15 @@ export default function MiniDRE() {
           { header: 'Linha', key: 'label', type: 'text' as const },
           { header: 'Valor', key: 'value', type: 'currency' as const },
         ],
-        rows: rows.map(r => ({ label: r.label, value: r.value })),
+        rows: rows.filter(r => !r.pct).map(r => ({ label: r.label, value: r.value })),
+      },
+      {
+        name: 'Indicadores %',
+        columns: [
+          { header: 'Linha', key: 'label', type: 'text' as const },
+          { header: 'Valor', key: 'value', type: 'percent' as const },
+        ],
+        rows: rows.filter(r => r.pct).map(r => ({ label: r.label, value: r.value })),
       },
     ];
   };
