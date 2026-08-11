@@ -95,7 +95,19 @@ export default function ItensCardapio() {
           <h1 className="text-3xl font-bold text-foreground">Itens do Cardápio</h1>
           <p className="text-muted-foreground">Cadastre todos os produtos disponíveis para venda</p>
         </div>
+        <ExportExcelButton
+          fileName="Itens_Cardapio"
+          getSheets={() => [{
+            name: 'Itens do Cardápio',
+            columns: [
+              { header: 'Item', key: 'item', type: 'number' },
+              { header: 'Nome do Produto', key: 'nome' },
+            ],
+            rows: filtered.map((i, idx) => ({ item: idx + 1, nome: i.nome })),
+          }]}
+        />
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
