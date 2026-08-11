@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import type { ReceitaManipulacao, ReceitaIngrediente, ProdutoCardapio, ProdutoIngrediente, UnidadeMedida } from '@/types';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 export default function FichasTecnicas() {
   const { state, dispatch } = useApp();
@@ -74,9 +76,73 @@ export default function FichasTecnicas() {
   const getInsumoNome = (id: string) => state.insumos.find(i => i.id === id)?.nome || '—';
   const getReceitaNome = (id: string) => state.receitas.find(r => r.id === id)?.nome || '—';
 
+  const getSheets = (): ExportSheet[] => {
+    const receitasRows: Record<string, unknown>[] = [];
+    state.receitas.forEach(r => {
+      r.ingredientes.forEach(ing => {
+        const insumo = state.insumos.find(i => i.id === ing.insumoId);
+        receitasRows.push({
+          receita: r.nome,
+          quantidadeProduzida: r.quantidadeProduzida,
+          unidade: r.unidade,
+          custoTotal: r.custoTotal,
+          custoPorUnidade: r.custoPorUnidade,
+          insumo: insumo?.nome || '—',
+          quantidade: ing.quantidade,
+          custo: (insumo?.custoPorUnidade || 0) * ing.quantidade,
+        });
+      });
+    });
+
+    const produtosRows: Record<string, unknown>[] = [];
+    state.produtos.forEach(p => {
+      p.ingredientes.forEach(ing => {
+        let nome = '', custo = 0;
+        if (ing.tipo === 'insumo') { const i = state.insumos.find(x => x.id === ing.referenciaId); nome = i?.nome || '—'; custo = (i?.custoPorUnidade || 0) * ing.quantidade; }
+        else { const r = state.receitas.find(x => x.id === ing.referenciaId); nome = r?.nome || '—'; custo = (r?.custoPorUnidade || 0) * ing.quantidade; }
+        produtosRows.push({ produto: p.nome, cmv: p.cmv, tipo: ing.tipo, item: nome, quantidade: ing.quantidade, custo });
+      });
+      if (p.custoEmbalagem > 0) {
+        produtosRows.push({ produto: p.nome, cmv: p.cmv, tipo: '—', item: 'Embalagem', quantidade: 1, custo: p.custoEmbalagem });
+      }
+    });
+
+    return [
+      {
+        name: 'Receitas de Manipulacao',
+        columns: [
+          { header: 'Receita', key: 'receita', type: 'text' },
+          { header: 'Quantidade Produzida', key: 'quantidadeProduzida', type: 'number' },
+          { header: 'Unidade', key: 'unidade', type: 'text' },
+          { header: 'Custo Total', key: 'custoTotal', type: 'currency' },
+          { header: 'Custo por Unidade', key: 'custoPorUnidade', type: 'currency' },
+          { header: 'Insumo', key: 'insumo', type: 'text' },
+          { header: 'Quantidade', key: 'quantidade', type: 'number' },
+          { header: 'Custo', key: 'custo', type: 'currency' },
+        ],
+        rows: receitasRows,
+      },
+      {
+        name: 'Produtos do Cardapio',
+        columns: [
+          { header: 'Produto', key: 'produto', type: 'text' },
+          { header: 'CMV', key: 'cmv', type: 'currency' },
+          { header: 'Tipo', key: 'tipo', type: 'text' },
+          { header: 'Item', key: 'item', type: 'text' },
+          { header: 'Quantidade', key: 'quantidade', type: 'number' },
+          { header: 'Custo', key: 'custo', type: 'currency' },
+        ],
+        rows: produtosRows,
+      },
+    ];
+  };
+
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl font-bold">Fichas Técnicas</h1><p className="text-muted-foreground">Receitas de manipulação e produtos do cardápio</p></div>
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Fichas Técnicas</h1><p className="text-muted-foreground">Receitas de manipulação e produtos do cardápio</p></div>
+        <ExportExcelButton fileName="Fichas_Tecnicas" getSheets={getSheets} />
+      </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList><TabsTrigger value="receitas">Receitas de Manipulação</TabsTrigger><TabsTrigger value="produtos">Produtos do Cardápio</TabsTrigger></TabsList>
