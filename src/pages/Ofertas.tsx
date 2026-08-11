@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Oferta, QuadrantesOfertas } from '@/types';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 /* ───── helpers ───── */
 type Periodo = 'hoje' | '7d' | '15d' | '30d' | 'mes' | 'custom';
@@ -433,6 +435,55 @@ export default function Ofertas() {
     );
   }
 
+  const getSheets = (): ExportSheet[] => {
+    const quadranteCols: ExportSheet['columns'] = [
+      { header: 'Produto', key: 'produto', type: 'text' },
+      { header: 'Qtd', key: 'qtd', type: 'number' },
+      { header: 'PV', key: 'pv', type: 'currency' },
+      { header: 'CMV', key: 'cmv', type: 'currency' },
+      { header: 'Lucro R$', key: 'lucroReais', type: 'currency' },
+      { header: 'Lucro %', key: 'lucroPercent', type: 'percent' },
+    ];
+    const toRows = (data: ProdutoAnalise[]) => data.map(p => ({
+      produto: p.nome,
+      qtd: p.qtdVendida,
+      pv: p.pv,
+      cmv: p.cmv,
+      lucroReais: p.lucroDinheiro,
+      lucroPercent: p.lucratividade / 100,
+    }));
+
+    const historicoRows = filteredOfertas.map(o => ({
+      nome: o.nome,
+      status: o.status,
+      tipo: o.tipo.replace('_', ' '),
+      preco: o.precoOferta,
+      lucroReais: o.lucroDinheiro,
+      lucroPercent: o.lucroPercent / 100,
+      criadoEm: new Date(o.criadoEm).toLocaleDateString('pt-BR'),
+    }));
+
+    return [
+      { name: 'Mais Vendidos', columns: quadranteCols, rows: toRows(maisVendidos) },
+      { name: 'Menos Vendidos', columns: quadranteCols, rows: toRows(menosVendidos) },
+      { name: 'Mais Lucrativos', columns: quadranteCols, rows: toRows(maisLucrativos) },
+      { name: 'Menos Lucrativos', columns: quadranteCols, rows: toRows(menosLucrativos) },
+      {
+        name: 'Historico de Ofertas',
+        columns: [
+          { header: 'Nome', key: 'nome', type: 'text' },
+          { header: 'Status', key: 'status', type: 'text' },
+          { header: 'Tipo', key: 'tipo', type: 'text' },
+          { header: 'Preço', key: 'preco', type: 'currency' },
+          { header: 'Lucro R$', key: 'lucroReais', type: 'currency' },
+          { header: 'Lucro %', key: 'lucroPercent', type: 'percent' },
+          { header: 'Criado em', key: 'criadoEm', type: 'text' },
+        ],
+        rows: historicoRows,
+      },
+    ];
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -441,6 +492,7 @@ export default function Ofertas() {
           <p className="text-muted-foreground text-sm">Análise estratégica e geração de ofertas</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <ExportExcelButton fileName="Ofertas" getSheets={getSheets} />
           <Select value={periodo} onValueChange={v => setPeriodo(v as Periodo)}>
             <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>

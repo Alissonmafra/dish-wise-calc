@@ -3,6 +3,8 @@ import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 interface Pergunta {
   id: string;
@@ -136,10 +138,55 @@ export default function Diagnostico() {
     ? '🟡 Atenção, problemas estruturais'
     : '🔴 Risco alto, intervenção urgente';
 
+  const getSheets = (): ExportSheet[] => {
+    const perguntasSheet: ExportSheet = {
+      name: 'Perguntas e Respostas',
+      columns: [
+        { header: '#', key: 'id', type: 'text' },
+        { header: 'Pergunta', key: 'pergunta', type: 'text' },
+        { header: 'Resposta', key: 'resposta', type: 'text' },
+        { header: 'Diagnóstico', key: 'diagnostico', type: 'text' },
+        { header: 'Ação Recomendada', key: 'acao', type: 'text' },
+      ],
+      rows: perguntas.map(pg => {
+        const resp = getResposta(pg.id);
+        const diag = resp ? pg.diagnosticar(resp) : null;
+        return {
+          id: pg.id,
+          pergunta: pg.texto,
+          resposta: resp,
+          diagnostico: diag ? `${diag.emoji} ${diag.label}` : '',
+          acao: diag?.acao || '',
+        };
+      }),
+    };
+
+    const scoreSheet: ExportSheet = {
+      name: 'Score',
+      columns: [
+        { header: 'Indicador', key: 'indicador', type: 'text' },
+        { header: 'Valor', key: 'valor', type: 'number' },
+      ],
+      rows: [
+        { indicador: 'Alertas', valor: pontuacao.alertas },
+        { indicador: 'Atenções', valor: pontuacao.atencoes },
+        { indicador: 'OK', valor: pontuacao.oks },
+        { indicador: 'Interpretação', valor: interpretacao },
+      ],
+    };
+
+    return [perguntasSheet, scoreSheet];
+  };
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-foreground">Diagnóstico Rápido</h1>
-      <p className="text-muted-foreground">Saúde Financeira do Restaurante</p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Diagnóstico Rápido</h1>
+          <p className="text-muted-foreground">Saúde Financeira do Restaurante</p>
+        </div>
+        <ExportExcelButton fileName="Diagnostico" getSheets={getSheets} />
+      </div>
 
       <Card>
         <CardHeader><CardTitle>Questionário</CardTitle></CardHeader>
