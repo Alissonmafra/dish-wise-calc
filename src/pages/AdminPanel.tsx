@@ -15,6 +15,8 @@ import {
 import { toast } from 'sonner';
 import { Eye, EyeOff, ToggleLeft, ToggleRight, Users, RefreshCw, Pencil, Check, X, UserPlus, CheckCircle2, CopyPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 // Cliente temporário sem persistência de sessão — usado só para criar usuários
 // sem afetar a sessão do admin
@@ -181,6 +183,41 @@ export default function AdminPanel() {
   const pendentes = clientes.filter(c => !c.ativo && !c.ultimo_acesso).length;
   const esteMes   = clientes.filter(c => new Date(c.criado_em).getMonth() === new Date().getMonth()).length;
 
+  const getSheets = (): ExportSheet[] => {
+    const clientesSheet: ExportSheet = {
+      name: 'Clientes',
+      columns: [
+        { header: 'Restaurante', key: 'nome', type: 'text' },
+        { header: 'Status', key: 'status', type: 'text' },
+        { header: 'Cadastro', key: 'cadastro', type: 'text' },
+        { header: 'Último Acesso', key: 'ultimoAcesso', type: 'text' },
+      ],
+      rows: clientes.map(c => ({
+        nome: c.nome_restaurante || 'sem nome',
+        status: !c.ativo && !c.ultimo_acesso ? 'Pendente' : c.ativo ? 'Ativo' : 'Inativo',
+        cadastro: formatDate(c.criado_em),
+        ultimoAcesso: formatDate(c.ultimo_acesso),
+      })),
+    };
+
+    const resumoSheet: ExportSheet = {
+      name: 'Resumo',
+      columns: [
+        { header: 'Indicador', key: 'indicador', type: 'text' },
+        { header: 'Valor', key: 'valor', type: 'number' },
+      ],
+      rows: [
+        { indicador: 'Total', valor: clientes.length },
+        { indicador: 'Pendentes', valor: pendentes },
+        { indicador: 'Ativos', valor: ativos },
+        { indicador: 'Inativos', valor: inativos },
+        { indicador: 'Este mês', valor: esteMes },
+      ],
+    };
+
+    return [clientesSheet, resumoSheet];
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
 
@@ -199,6 +236,7 @@ export default function AdminPanel() {
             <UserPlus className="h-4 w-4 mr-1" />
             Novo Cliente
           </Button>
+          <ExportExcelButton fileName="Clientes_Admin" getSheets={getSheets} />
         </div>
       </div>
 
