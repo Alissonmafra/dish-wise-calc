@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/table';
 import { Plus, Search, Pencil, Trash2, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
+import ExportExcelButton from '@/components/ExportExcelButton';
+
 
 export default function ItensCardapio() {
   const { state, dispatch } = useApp();
