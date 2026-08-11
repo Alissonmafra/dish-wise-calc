@@ -17,6 +17,8 @@ import { Plus, Trash2, Info, AlertTriangle, Eye, EyeOff, ShieldCheck, ShieldAler
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LabelList } from 'recharts';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { DespesaFixa, Funcionario, Veiculo, CustosInvisiveis } from '@/types';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
@@ -146,11 +148,132 @@ export default function Financeiro() {
     return msgs;
   }, [ciCalc, ci.funcionarios, state.despesasFixas]);
 
+  const getSheets = (): ExportSheet[] => {
+    const despesasSheet: ExportSheet = {
+      name: 'Despesas Fixas',
+      columns: [
+        { header: 'Mês', key: 'mes', type: 'text' },
+        { header: 'Descrição', key: 'descricao', type: 'text' },
+        { header: 'Valor (R$)', key: 'valor', type: 'currency' },
+      ],
+      rows: state.despesasFixas.map(d => ({ mes: d.mes, descricao: d.descricao, valor: d.valor })),
+    };
+
+    const resumoMensalSheet: ExportSheet = {
+      name: 'Resumo Mensal',
+      columns: [
+        { header: 'Mês', key: 'mes', type: 'text' },
+        { header: 'Visíveis (R$)', key: 'visiveis', type: 'currency' },
+        { header: 'Invisíveis (R$)', key: 'invisiveis', type: 'currency' },
+        { header: 'Total (R$)', key: 'total', type: 'currency' },
+        { header: 'Custo Fixo (%)', key: 'percent', type: 'percent' },
+      ],
+      rows: resumoMensal.rows.map(r => ({
+        mes: r.mes,
+        visiveis: r.visiveis,
+        invisiveis: r.invisiveis,
+        total: r.total,
+        percent: r.percent !== null ? r.percent / 100 : null,
+      })),
+    };
+
+    const custosInvisiveisSheet: ExportSheet = {
+      name: 'Custos Invisíveis',
+      columns: [
+        { header: 'Categoria', key: 'categoria', type: 'text' },
+        { header: 'Valor Mensal (R$)', key: 'valor', type: 'currency' },
+      ],
+      rows: [
+        { categoria: 'IPTU', valor: ciCalc.iptuMensal },
+        { categoria: 'Salários', valor: ciCalc.totalSalarios },
+        { categoria: 'Vale Transporte', valor: ciCalc.valeTransporte },
+        { categoria: 'Depreciação', valor: ciCalc.depreciacao },
+        { categoria: 'Brindes', valor: ciCalc.brindes },
+        { categoria: 'Veículos', valor: ciCalc.veiculos },
+        { categoria: 'Alimentação', valor: ciCalc.alimentacao },
+        { categoria: 'Total Invisíveis', valor: ciCalc.total },
+      ],
+    };
+
+    const funcionariosSheet: ExportSheet = {
+      name: 'Funcionários',
+      columns: [
+        { header: 'Nome', key: 'nome', type: 'text' },
+        { header: 'Cargo', key: 'cargo', type: 'text' },
+        { header: 'Salário Base (R$)', key: 'sal', type: 'currency' },
+        { header: 'Total c/ Encargos (R$)', key: 'total', type: 'currency' },
+      ],
+      rows: funcDetails.map(f => ({ nome: f.nome, cargo: f.cargo, sal: f.sal, total: f.total })),
+    };
+
+    const veiculosSheet: ExportSheet = {
+      name: 'Veículos',
+      columns: [
+        { header: 'Veículo', key: 'nome', type: 'text' },
+        { header: 'Total Mensal (R$)', key: 'total', type: 'currency' },
+      ],
+      rows: veicDetails.map(v => ({ nome: v.nome, total: v.total })),
+    };
+
+    const faturamentoSheet: ExportSheet = {
+      name: 'Faturamento',
+      columns: [
+        { header: 'Mês', key: 'mes', type: 'text' },
+        { header: 'Faturamento (R$)', key: 'valor', type: 'currency' },
+      ],
+      rows: state.faturamento.map(f => ({ mes: f.mes, valor: f.valor })),
+    };
+
+    const impostosSheet: ExportSheet = {
+      name: 'Impostos',
+      columns: [
+        { header: 'Campo', key: 'campo', type: 'text' },
+        { header: 'Valor', key: 'valor', type: 'text' },
+      ],
+      rows: [
+        { campo: 'Regime', valor: state.simplesNacional.regime },
+        { campo: 'Anexo', valor: state.simplesNacional.anexo },
+        { campo: 'Modo Simulação', valor: state.simplesNacional.modoSimulacao ? 'Sim' : 'Não' },
+        { campo: 'RBT12 Manual (R$)', valor: state.simplesNacional.rbt12Manual },
+      ],
+    };
+
+    const dnaSheet: ExportSheet = {
+      name: 'DNA da Empresa',
+      columns: [
+        { header: 'Campo', key: 'campo', type: 'text' },
+        { header: 'Valor (%)', key: 'valor', type: 'percent' },
+      ],
+      rows: [
+        { campo: 'Custo Fixo', valor: dna.custoFixoPercent / 100 },
+        { campo: 'Média Cartão', valor: dna.mediaCartao / 100 },
+        { campo: 'Impostos', valor: dna.impostos / 100 },
+        { campo: 'Voucher', valor: dna.voucher / 100 },
+        ...(dna.isFranquia ? [{ campo: 'Franquia', valor: dna.franquia / 100 }] : []),
+        { campo: 'DNA Total', valor: dnaTotal / 100 },
+      ],
+    };
+
+    return [
+      despesasSheet,
+      resumoMensalSheet,
+      custosInvisiveisSheet,
+      funcionariosSheet,
+      veiculosSheet,
+      faturamentoSheet,
+      impostosSheet,
+      dnaSheet,
+    ];
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Financeiro</h1>
-        <p className="text-muted-foreground">Configure as bases financeiras do seu negócio</p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="text-2xl font-bold">Financeiro</h1>
+          <p className="text-muted-foreground">Configure as bases financeiras do seu negócio</p>
+        </div>
+        <ExportExcelButton fileName="Financeiro" getSheets={getSheets} />
       </div>
 
       <Tabs defaultValue="despesas">

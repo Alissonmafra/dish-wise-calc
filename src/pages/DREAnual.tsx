@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Download } from 'lucide-react';
+import ExportExcelButton from '@/components/ExportExcelButton';
 
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -247,9 +248,45 @@ export default function DREAnual() {
     dispatch({ type: 'SET_DRE', payload: { valores: newVals } });
   }, [state.vendas, state.dnaEmpresa, vals, dispatch]);
 
+  const getSheets = () => {
+    const currencyRows = data.filter(row => !row.isSection && !(row.isIndicator && row.totalKey !== 'pontoEq'));
+    const percentRows = data.filter(row => row.isIndicator && row.totalKey !== 'pontoEq');
+
+    const toRows = (rowsArr: typeof data) => rowsArr.map(row => {
+      const r: Record<string, unknown> = { conta: row.label };
+      (row.values || []).forEach((v, i) => { r[`m${i}`] = v; });
+      r.total = row.totalAno;
+      return r;
+    });
+
+    return [
+      {
+        name: 'DRE Anual',
+        columns: [
+          { header: 'Conta', key: 'conta', type: 'text' as const },
+          ...MESES.map((m, i) => ({ header: m, key: `m${i}`, type: 'currency' as const })),
+          { header: 'Total Ano', key: 'total', type: 'currency' as const },
+        ],
+        rows: toRows(currencyRows),
+      },
+      {
+        name: 'Indicadores',
+        columns: [
+          { header: 'Conta', key: 'conta', type: 'text' as const },
+          ...MESES.map((m, i) => ({ header: m, key: `m${i}`, type: 'percent' as const })),
+          { header: 'Total Ano', key: 'total', type: 'percent' as const },
+        ],
+        rows: toRows(percentRows),
+      },
+    ];
+  };
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-foreground">DRE Anual</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-foreground">DRE Anual</h1>
+        <ExportExcelButton fileName="DRE_Anual" getSheets={getSheets} />
+      </div>
       <Card>
         <CardHeader><CardTitle>Demonstrativo de Resultado do Exercício</CardTitle></CardHeader>
         <CardContent>

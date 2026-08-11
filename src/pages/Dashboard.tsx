@@ -3,6 +3,8 @@ import { formatBRL, formatPercent } from '@/lib/formatters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, Package, BarChart3, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 const COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -31,11 +33,53 @@ export default function Dashboard() {
     { title: 'Total de Produtos', value: String(state.produtos.length), icon: Package, color: 'text-success' },
   ];
 
+  const getSheets = (): ExportSheet[] => {
+    const indicadoresSheet: ExportSheet = {
+      name: 'Indicadores',
+      columns: [
+        { header: 'Indicador', key: 'indicador', type: 'text' },
+        { header: 'Valor', key: 'valor', type: 'number' },
+      ],
+      rows: [
+        { indicador: 'Faturamento Médio (R$)', valor: mediaFaturamento },
+        { indicador: 'Custo Fixo Médio (R$)', valor: mediaDespesas },
+        { indicador: 'DNA da Empresa (%)', valor: dnaTotal },
+        { indicador: 'Total de Produtos', valor: state.produtos.length },
+        { indicador: '% Custo Fixo', valor: dna.custoFixoPercent },
+        { indicador: 'Composição de Margem (%)', valor: dna.composicaoMargem },
+      ],
+    };
+
+    const dnaSheet: ExportSheet = {
+      name: 'DNA da Empresa',
+      columns: [
+        { header: 'Componente', key: 'name', type: 'text' },
+        { header: 'Percentual', key: 'value', type: 'percent' },
+      ],
+      rows: dnaPieData.map(d => ({ name: d.name, value: d.value / 100 })),
+    };
+
+    const produtosSheet: ExportSheet = {
+      name: 'CMV por Produto',
+      columns: [
+        { header: 'Produto', key: 'name', type: 'text' },
+        { header: 'CMV (R$)', key: 'cmv', type: 'currency' },
+        { header: 'Lucro (%)', key: 'lucro', type: 'percent' },
+      ],
+      rows: produtoRent.map(p => ({ name: p.name, cmv: p.cmv, lucro: p.lucro / 100 })),
+    };
+
+    return [indicadoresSheet, dnaSheet, produtosSheet];
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral do seu negócio</p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Visão geral do seu negócio</p>
+        </div>
+        <ExportExcelButton fileName="Dashboard" getSheets={getSheets} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

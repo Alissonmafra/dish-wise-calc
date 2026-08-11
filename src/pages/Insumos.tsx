@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Pencil, Trash2, Search, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { Insumo, UnidadeMedida } from '@/types';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 const UNIDADES: { value: UnidadeMedida; label: string }[] = [
   { value: 'g', label: 'Grama (gr)' },
@@ -61,11 +63,40 @@ export default function Insumos() {
 
   const remove = (id: string) => dispatch({ type: 'SET_INSUMOS', payload: state.insumos.filter(i => i.id !== id) });
 
+  const getSheets = (): ExportSheet[] => [{
+    name: 'Insumos',
+    columns: [
+      { header: 'Item', key: 'item', type: 'number' },
+      { header: 'Nome', key: 'nome', type: 'text' },
+      { header: 'Peso/Qtd', key: 'quantidadeComprada', type: 'number' },
+      { header: 'Unidade', key: 'unidade', type: 'text' },
+      { header: 'Preço (R$)', key: 'precoPago', type: 'currency' },
+      { header: 'Perda (%)', key: 'percentualPerda', type: 'percent' },
+      { header: 'Peso/Qtd Real', key: 'quantidadeReal', type: 'number' },
+      { header: 'Preço Real (R$)', key: 'custoPorUnidade', type: 'currency' },
+      { header: 'Preço por Unidade de Medida', key: 'precoPorUnidadeMedida', type: 'text' },
+    ],
+    rows: filtered.map((i, idx) => ({
+      item: idx + 1,
+      nome: i.nome,
+      quantidadeComprada: i.quantidadeComprada,
+      unidade: i.unidade,
+      precoPago: i.precoPago,
+      percentualPerda: i.percentualPerda / 100,
+      quantidadeReal: i.quantidadeReal,
+      custoPorUnidade: i.custoPorUnidade,
+      precoPorUnidadeMedida: `R$ ${i.custoPorUnidade.toFixed(4)} por ${UNIT_LABELS[i.unidade] || i.unidade}`,
+    })),
+  }];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Cadastro de Insumos e Matéria-Prima</h1>
-        <p className="text-muted-foreground">Cadastre todos os ingredientes, embalagens e materiais usados na produção</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Cadastro de Insumos e Matéria-Prima</h1>
+          <p className="text-muted-foreground">Cadastre todos os ingredientes, embalagens e materiais usados na produção</p>
+        </div>
+        <ExportExcelButton fileName="Insumos" getSheets={getSheets} />
       </div>
 
       <Card className="p-6 flex items-center gap-4">

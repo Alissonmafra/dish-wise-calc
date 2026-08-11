@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Trash2, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import type { LucroAtualEntrada } from '@/types';
+import ExportExcelButton from '@/components/ExportExcelButton';
 
 interface LinhaLucro {
   id: string;
@@ -81,11 +82,49 @@ export default function LucroAtual() {
     dispatch({ type: 'SET_LUCROS_ATUAIS', payload: entradas });
   }, [linhas, dispatch]);
 
+  const getSheets = () => {
+    const rows = linhas
+      .filter(l => l.produtoId)
+      .map((l, idx) => {
+        const produto = state.produtos.find(p => p.id === l.produtoId);
+        const calc = calcLinha(l);
+        return {
+          item: idx + 1,
+          produto: produto?.nome ?? '',
+          vendaAtual: typeof l.vendaAtual === 'number' ? l.vendaAtual : 0,
+          dna: dnaTotal / 100,
+          entrega: l.entrega,
+          cmv: calc.cmv,
+          lucro: calc.valid ? calc.lucro : null,
+          pct: calc.valid ? (calc.pct as number) / 100 : null,
+        };
+      });
+    return [
+      {
+        name: 'Lucro Atual',
+        columns: [
+          { header: 'Item', key: 'item', type: 'number' as const },
+          { header: 'Produto', key: 'produto', type: 'text' as const },
+          { header: 'Valor de Venda Atual', key: 'vendaAtual', type: 'currency' as const },
+          { header: 'DNA', key: 'dna', type: 'percent' as const },
+          { header: 'Entrega', key: 'entrega', type: 'currency' as const },
+          { header: 'CMV + Embalagem', key: 'cmv', type: 'currency' as const },
+          { header: 'Lucro Atual', key: 'lucro', type: 'currency' as const },
+          { header: 'Lucro/Prejuízo %', key: 'pct', type: 'percent' as const },
+        ],
+        rows,
+      },
+    ];
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Lucro Atual</h1>
-        <p className="text-muted-foreground">Diagnóstico de lucro/prejuízo com base no preço de venda praticado hoje</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Lucro Atual</h1>
+          <p className="text-muted-foreground">Diagnóstico de lucro/prejuízo com base no preço de venda praticado hoje</p>
+        </div>
+        <ExportExcelButton fileName="Lucro_Atual" getSheets={getSheets} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

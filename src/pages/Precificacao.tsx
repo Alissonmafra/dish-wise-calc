@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Trash2, DollarSign, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { PrecoProduto } from '@/types';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 interface LinhaPV {
   id: string;
@@ -182,11 +184,56 @@ export default function Precificacao() {
     return <span className="font-semibold">{formatBRL(value)}</span>;
   };
 
+  const getSheets = useCallback((): ExportSheet[] => {
+    const rows = linhasCalc
+      .filter(l => l.calc.hasProduto)
+      .map(l => {
+        const produto = state.produtos.find(p => p.id === l.produtoId);
+        return {
+          produto: produto?.nome ?? '',
+          cmv: l.calc.cmv,
+          dna: dnaTotal / 100,
+          lucroEstimado: num(l.lucroEstimado) / 100,
+          pv: l.calc.pv,
+          ifoodPct: num(l.ifoodPct) / 100,
+          entrega: num(l.entrega),
+          pvIfood: l.calc.pvIfood,
+          cupom: num(l.cupom),
+          lucroFantasma: num(l.lucroFantasma) / 100,
+          pvFantasma: l.calc.pvFant,
+          pvIfoodFantasma: l.calc.pvIfoodFant,
+          cupomFantasma: num(l.cupomFantasma),
+        };
+      });
+    return [{
+      name: 'Precificacao',
+      columns: [
+        { header: 'Produto', key: 'produto', type: 'text' },
+        { header: 'CMV + Emb. (R$)', key: 'cmv', type: 'currency' },
+        { header: 'DNA (%)', key: 'dna', type: 'percent' },
+        { header: 'Lucro Est. (%)', key: 'lucroEstimado', type: 'percent' },
+        { header: 'PV (R$)', key: 'pv', type: 'currency' },
+        { header: 'iFood (%)', key: 'ifoodPct', type: 'percent' },
+        { header: 'Entrega (R$)', key: 'entrega', type: 'currency' },
+        { header: 'PV iFood (R$)', key: 'pvIfood', type: 'currency' },
+        { header: 'Cupom (R$)', key: 'cupom', type: 'currency' },
+        { header: 'Lucro Fant. (%)', key: 'lucroFantasma', type: 'percent' },
+        { header: 'PV Fant. (R$)', key: 'pvFantasma', type: 'currency' },
+        { header: 'PV iFood Fant. (R$)', key: 'pvIfoodFantasma', type: 'currency' },
+        { header: 'Cupom Fant. (R$)', key: 'cupomFantasma', type: 'currency' },
+      ],
+      rows,
+    }];
+  }, [linhasCalc, state.produtos, dnaTotal]);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Preço de Venda (PV)</h1>
-        <p className="text-muted-foreground">Calcule o preço ideal de venda para cardápio, iFood e cardápio fantasma</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Preço de Venda (PV)</h1>
+          <p className="text-muted-foreground">Calcule o preço ideal de venda para cardápio, iFood e cardápio fantasma</p>
+        </div>
+        <ExportExcelButton fileName="Precificacao" getSheets={getSheets} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

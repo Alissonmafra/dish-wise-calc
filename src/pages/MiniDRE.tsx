@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import ExportExcelButton from '@/components/ExportExcelButton';
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPct = (v: number) => (v * 100).toFixed(1) + '%';
@@ -75,9 +76,55 @@ export default function MiniDRE() {
     </div>
   );
 
+  const getSheets = () => {
+    if (!calc) return [{ name: 'Mini-DRE', columns: [], rows: [] }];
+    const rows = [
+      { label: 'Preço de Venda', value: precoVendaManual, pct: false },
+      { label: '(-) Impostos', value: calc.impostos, pct: false },
+      { label: '(=) Receita Líquida', value: calc.receitaLiquida, pct: false },
+      { label: 'Ingredientes / Insumos Diretos', value: calc.ingredientes, pct: false },
+      { label: 'Embalagem / Descartável', value: calc.embalagem, pct: false },
+      { label: 'Custo do Funcionário (rateio)', value: calc.custoFuncionario, pct: false },
+      { label: 'Pró-labore do Sócio (rateio)', value: calc.proLabore, pct: false },
+      { label: '(=) Total Custo de Produção', value: calc.totalCustoProd, pct: false },
+      { label: '% Custo de Produção', value: calc.pctCustoProd, pct: true },
+      { label: 'Aluguel (rateio)', value: calc.aluguel, pct: false },
+      { label: 'Energia / Água (rateio)', value: calc.energiaAgua, pct: false },
+      { label: 'Honorários + Mídia (rateio)', value: calc.honorariosMidia, pct: false },
+      { label: 'Taxa de Maquininha', value: calc.taxaMaq, pct: false },
+      { label: 'Outros (admin)', value: calc.outros, pct: false },
+      { label: '(=) Total Despesas Rateadas', value: calc.totalDespRateadas, pct: false },
+      { label: 'Lucro Bruto por Unidade', value: calc.lucroBruto, pct: false },
+      { label: 'Margem de Lucro %', value: calc.margemLucro, pct: true },
+      { label: 'Faturamento Bruto Mensal', value: calc.fatMensal, pct: false },
+      { label: 'Lucro Total Mensal', value: calc.lucroMensal, pct: false },
+    ];
+    return [
+      {
+        name: 'Mini-DRE',
+        columns: [
+          { header: 'Linha', key: 'label', type: 'text' as const },
+          { header: 'Valor', key: 'value', type: 'currency' as const },
+        ],
+        rows: rows.filter(r => !r.pct).map(r => ({ label: r.label, value: r.value })),
+      },
+      {
+        name: 'Indicadores %',
+        columns: [
+          { header: 'Linha', key: 'label', type: 'text' as const },
+          { header: 'Valor', key: 'value', type: 'percent' as const },
+        ],
+        rows: rows.filter(r => r.pct).map(r => ({ label: r.label, value: r.value })),
+      },
+    ];
+  };
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-foreground">Mini-DRE por Produto</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-foreground">Mini-DRE por Produto</h1>
+        <ExportExcelButton fileName="Mini_DRE" getSheets={getSheets} />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>

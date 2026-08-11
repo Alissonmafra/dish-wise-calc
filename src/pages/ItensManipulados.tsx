@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/table';
 import { Plus, Search, Pencil, Trash2, ChefHat } from 'lucide-react';
 import { toast } from 'sonner';
+import ExportExcelButton from '@/components/ExportExcelButton';
+
 
 export default function ItensManipulados() {
   const { state, dispatch } = useApp();
@@ -93,7 +95,19 @@ export default function ItensManipulados() {
           <h1 className="text-3xl font-bold text-foreground">Itens Manipulados (Receitas)</h1>
           <p className="text-muted-foreground">Cadastre todas as receitas base, preparos intermediários e pré-produções</p>
         </div>
+        <ExportExcelButton
+          fileName="Itens_Manipulados"
+          getSheets={() => [{
+            name: 'Receitas',
+            columns: [
+              { header: 'Item', key: 'item', type: 'number' },
+              { header: 'Nome da Receita', key: 'nome' },
+            ],
+            rows: filtered.map((i, idx) => ({ item: idx + 1, nome: i.nome })),
+          }]}
+        />
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
