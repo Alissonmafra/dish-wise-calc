@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/table';
 import { Plus, Search, Pencil, Trash2, ChefHat } from 'lucide-react';
 import { toast } from 'sonner';
+import ExportExcelButton from '@/components/ExportExcelButton';
+
 
 export default function ItensManipulados() {
   const { state, dispatch } = useApp();
