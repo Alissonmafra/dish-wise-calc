@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Trash2, ShoppingCart, TrendingUp, DollarSign, Package, ArrowUp, ArrowDown } from 'lucide-react';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 const CANAIS: { value: CanalVenda; label: string }[] = [
   { value: 'balcao', label: 'Salão / Balcão' },
@@ -138,11 +140,73 @@ export default function VendasDoDia() {
 
   const noProdutos = produtosDisponiveis.length === 0;
 
+  const getSheets = (): ExportSheet[] => {
+    const vendasRows = vendasDoDia.map(v => ({
+      produto: v.nomeProduto,
+      canal: CANAIS.find(c => c.value === v.canal)?.label ?? v.canal,
+      quantidade: v.quantidade,
+      pvUnit: v.precoUnitario,
+      faturamentoBruto: v.faturamentoBruto,
+      cmvUnit: v.cmvUnitario,
+      custoTotal: v.custoTotalProduto,
+      dnaPercent: v.dnaPercent / 100,
+      cvUnit: v.custoVariavelUnitario,
+      cvTotal: v.custoVariavelTotal,
+      lucroUnit: v.lucroUnitario,
+      lucroTotal: v.lucroTotal,
+    }));
+
+    const rankingRows = resumoMensal.ranking.map(r => ({
+      produto: r.nome,
+      quantidade: r.qtd,
+      faturamento: r.fat,
+      lucro: r.lucro,
+      partFat: resumoMensal.fat > 0 ? r.fat / resumoMensal.fat : null,
+      partLucro: resumoMensal.lucro !== 0 ? r.lucro / resumoMensal.lucro : null,
+    }));
+
+    return [
+      {
+        name: 'Vendas_do_Dia',
+        columns: [
+          { header: 'Produto', key: 'produto', type: 'text' },
+          { header: 'Canal', key: 'canal', type: 'text' },
+          { header: 'Qtd', key: 'quantidade', type: 'number' },
+          { header: 'PV Unit.', key: 'pvUnit', type: 'currency' },
+          { header: 'Fat. Bruto', key: 'faturamentoBruto', type: 'currency' },
+          { header: 'CMV Unit.', key: 'cmvUnit', type: 'currency' },
+          { header: 'Custo Total', key: 'custoTotal', type: 'currency' },
+          { header: 'DNA%', key: 'dnaPercent', type: 'percent' },
+          { header: 'CV Unit.', key: 'cvUnit', type: 'currency' },
+          { header: 'CV Total', key: 'cvTotal', type: 'currency' },
+          { header: 'Lucro Unit.', key: 'lucroUnit', type: 'currency' },
+          { header: 'Lucro Total', key: 'lucroTotal', type: 'currency' },
+        ],
+        rows: vendasRows,
+      },
+      {
+        name: 'Ranking Mensal',
+        columns: [
+          { header: 'Produto', key: 'produto', type: 'text' },
+          { header: 'Qtd', key: 'quantidade', type: 'number' },
+          { header: 'Faturamento', key: 'faturamento', type: 'currency' },
+          { header: 'Lucro', key: 'lucro', type: 'currency' },
+          { header: 'Part. Fat %', key: 'partFat', type: 'percent' },
+          { header: 'Part. Lucro %', key: 'partLucro', type: 'percent' },
+        ],
+        rows: rankingRows,
+      },
+    ];
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Vendas do Dia</h1>
-        <p className="text-muted-foreground">Registre vendas e acompanhe faturamento, custos e lucro</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Vendas do Dia</h1>
+          <p className="text-muted-foreground">Registre vendas e acompanhe faturamento, custos e lucro</p>
+        </div>
+        <ExportExcelButton fileName="Vendas_do_Dia" getSheets={getSheets} />
       </div>
 
       {noProdutos && (

@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Trash2 } from 'lucide-react';
 import type { Combo } from '@/types';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 interface ComboLocal {
   id: string;
@@ -70,11 +72,84 @@ export default function Combos() {
     persist(combos.map(c => c.id === comboId ? { ...c, produtos: c.produtos.filter((_, i) => i !== idx) } : c));
   };
 
+  const getSheets = (): ExportSheet[] => {
+    const combosRows = combos.map(c => {
+      const dna = dnaTotal / 100;
+      const lucro = c.lucroEst / 100;
+      const ifood = c.taxaIfood / 100;
+      const cmvTotal = c.produtos.reduce((acc, p) => {
+        const prod = state.produtos.find(pr => pr.id === p.produtoId);
+        return acc + (prod?.cmv || 0) * p.quantidade;
+      }, 0);
+      const qtdTotal = c.produtos.reduce((acc, p) => acc + p.quantidade, 0);
+      const pvInvalid = dna + lucro >= 1;
+      const ifoodInvalid = ifood >= 1;
+      const pv = pvInvalid || cmvTotal === 0 ? null : cmvTotal / (1 - dna - lucro);
+      const pvIfood = pv == null || ifoodInvalid ? null : ((pv + c.entrega) / (1 - ifood)) + c.cupom;
+      return {
+        nome: c.nome,
+        qtdProdutos: qtdTotal,
+        dna,
+        lucroEstimado: lucro,
+        cmvTotal,
+        precoVenda: pv,
+        taxaIfood: ifood,
+        entrega: c.entrega,
+        precoIfood: pvIfood,
+        cupom: c.cupom,
+      };
+    });
+
+    const produtosRows = combos.flatMap(c =>
+      c.produtos.map(cp => {
+        const prod = state.produtos.find(p => p.id === cp.produtoId);
+        return {
+          combo: c.nome,
+          produto: prod?.nome ?? '',
+          quantidade: cp.quantidade,
+          cmv: (prod?.cmv || 0) * cp.quantidade,
+        };
+      })
+    );
+
+    return [
+      {
+        name: 'Combos',
+        columns: [
+          { header: 'Nome do Combo', key: 'nome', type: 'text' },
+          { header: 'Qtd. Produtos', key: 'qtdProdutos', type: 'number' },
+          { header: 'DNA (%)', key: 'dna', type: 'percent' },
+          { header: 'Lucro Estimado (%)', key: 'lucroEstimado', type: 'percent' },
+          { header: 'Custo do Combo (R$)', key: 'cmvTotal', type: 'currency' },
+          { header: 'Preço de Venda (R$)', key: 'precoVenda', type: 'currency' },
+          { header: 'Taxa iFood (%)', key: 'taxaIfood', type: 'percent' },
+          { header: 'Entrega (R$)', key: 'entrega', type: 'currency' },
+          { header: 'PV iFood (R$)', key: 'precoIfood', type: 'currency' },
+          { header: 'Cupom (R$)', key: 'cupom', type: 'currency' },
+        ],
+        rows: combosRows,
+      },
+      {
+        name: 'Produtos dos Combos',
+        columns: [
+          { header: 'Combo', key: 'combo', type: 'text' },
+          { header: 'Produto', key: 'produto', type: 'text' },
+          { header: 'Quantidade', key: 'quantidade', type: 'number' },
+          { header: 'CMV + Embalagem (R$)', key: 'cmv', type: 'currency' },
+        ],
+        rows: produtosRows,
+      },
+    ];
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Gestão de Combos</h1>
-        <p className="text-muted-foreground">Monte combos promocionais e calcule o preço ideal de venda</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Gestão de Combos</h1>
+          <p className="text-muted-foreground">Monte combos promocionais e calcule o preço ideal de venda</p>
+        </div>
+        <ExportExcelButton fileName="Combos" getSheets={getSheets} />
       </div>
       <div className="flex justify-end">
         <Button onClick={addCombo}><Plus className="h-4 w-4 mr-1" />Novo Combo</Button>

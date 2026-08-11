@@ -11,6 +11,8 @@ import { Plus, Pencil, Trash2, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatBRL } from '@/lib/formatters';
 import type { ReceitaManipulacao, ReceitaIngrediente, UnidadeMedida } from '@/types';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 const UNIT_LABELS: Record<string, string> = { g: 'gr', ml: 'ml', un: 'und' };
 const UNIT_OPTIONS: { value: UnidadeMedida; label: string }[] = [
@@ -124,6 +126,45 @@ export default function FichaManipulacao() {
     im => !receitas.some(r => r.nome === im.nome) || (editingId && receitas.find(r => r.id === editingId)?.nome === im.nome)
   );
 
+  const getSheets = (): ExportSheet[] => {
+    const rows: Record<string, unknown>[] = [];
+    receitas.forEach(r => {
+      const custoUnit = r.quantidadeProduzida > 0 ? r.custoTotal / r.quantidadeProduzida : 0;
+      r.ingredientes.forEach((ing, idx) => {
+        const insumo = insumos.find(i => i.id === ing.insumoId);
+        const lineCost = insumo ? insumo.custoPorUnidade * ing.quantidade : 0;
+        rows.push({
+          receita: r.nome,
+          quantidadeProduzida: r.quantidadeProduzida,
+          unidade: UNIT_LABELS[r.unidade] || r.unidade,
+          custoTotal: r.custoTotal,
+          custoUnitario: custoUnit,
+          item: idx + 1,
+          insumo: insumo?.nome || '—',
+          unidadeInsumo: insumo ? UNIT_LABELS[insumo.unidade] || insumo.unidade : '—',
+          quantidade: ing.quantidade,
+          preco: lineCost,
+        });
+      });
+    });
+    return [{
+      name: 'Ficha Manipulacao',
+      columns: [
+        { header: 'Receita', key: 'receita', type: 'text' },
+        { header: 'Quantidade Produzida', key: 'quantidadeProduzida', type: 'number' },
+        { header: 'Unidade', key: 'unidade', type: 'text' },
+        { header: 'Custo da Receita', key: 'custoTotal', type: 'currency' },
+        { header: 'Custo Unitário', key: 'custoUnitario', type: 'currency' },
+        { header: 'Item', key: 'item', type: 'number' },
+        { header: 'Insumo', key: 'insumo', type: 'text' },
+        { header: 'Unidade de Medida', key: 'unidadeInsumo', type: 'text' },
+        { header: 'Quantidade', key: 'quantidade', type: 'number' },
+        { header: 'Preço (R$)', key: 'preco', type: 'currency' },
+      ],
+      rows,
+    }];
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -131,7 +172,10 @@ export default function FichaManipulacao() {
           <h1 className="text-2xl font-bold text-foreground">Ficha Técnica de Manipulação</h1>
           <p className="text-muted-foreground text-sm">Monte a composição de cada receita manipulada com cálculo automático de custo.</p>
         </div>
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nova Ficha</Button>
+        <div className="flex gap-2">
+          <ExportExcelButton fileName="Ficha_Manipulacao" getSheets={getSheets} />
+          <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nova Ficha</Button>
+        </div>
       </div>
 
       {/* KPI */}

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2 } from 'lucide-react';
 import type { FechamentoDia } from '@/types';
+import ExportExcelButton from '@/components/ExportExcelButton';
 
 const calcRow = (f: FechamentoDia) => {
   const taxaDebVal = f.debito * (f.taxaDebito / 100);
@@ -89,11 +90,82 @@ export default function Fechamento() {
     return `${meses[parseInt(mo) - 1]}/${y}`;
   };
 
+  const getSheets = () => {
+    const diarioRows = state.fechamentos.map(f => {
+      const c = calcRow(f);
+      return {
+        data: f.data,
+        dinheiroPix: f.dinheiroPix,
+        debito: f.debito,
+        taxaDebito: f.taxaDebito / 100,
+        debLiq: c.debLiq,
+        credito: f.credito,
+        taxaCredito: f.taxaCredito / 100,
+        credLiq: c.credLiq,
+        ifood: f.ifood,
+        taxaIfood: f.taxaIfood / 100,
+        ifoodLiq: c.ifoodLiq,
+        motoboyDiaria: f.motoboyDiaria,
+        motoboyEntregas: f.motoboyEntregas,
+        comprasCMV: f.comprasCMV,
+        entrada: c.entrada,
+        saida: c.saida,
+        saldo: c.saldo,
+      };
+    });
+
+    const consolidadoRows = consolidado.map(([mes, v]) => ({
+      mes: formatMes(mes),
+      entrada: v.entrada,
+      saida: v.saida,
+      saldo: v.saldo,
+    }));
+
+    return [
+      {
+        name: 'Fechamento Diário',
+        columns: [
+          { header: 'Data', key: 'data', type: 'text' as const },
+          { header: 'Din./PIX', key: 'dinheiroPix', type: 'currency' as const },
+          { header: 'Débito', key: 'debito', type: 'currency' as const },
+          { header: 'Taxa Déb.%', key: 'taxaDebito', type: 'percent' as const },
+          { header: 'Déb.-Taxa', key: 'debLiq', type: 'currency' as const },
+          { header: 'Crédito', key: 'credito', type: 'currency' as const },
+          { header: 'Taxa Créd.%', key: 'taxaCredito', type: 'percent' as const },
+          { header: 'Créd.-Taxa', key: 'credLiq', type: 'currency' as const },
+          { header: 'iFood', key: 'ifood', type: 'currency' as const },
+          { header: 'Taxa iFood%', key: 'taxaIfood', type: 'percent' as const },
+          { header: 'iFood-Taxa', key: 'ifoodLiq', type: 'currency' as const },
+          { header: 'Motoboy Diár.', key: 'motoboyDiaria', type: 'currency' as const },
+          { header: 'Motoboy Entr.', key: 'motoboyEntregas', type: 'currency' as const },
+          { header: 'CMV+Emb.', key: 'comprasCMV', type: 'currency' as const },
+          { header: 'Entrada', key: 'entrada', type: 'currency' as const },
+          { header: 'Saída', key: 'saida', type: 'currency' as const },
+          { header: 'Saldo', key: 'saldo', type: 'currency' as const },
+        ],
+        rows: diarioRows,
+      },
+      {
+        name: 'Consolidado Mensal',
+        columns: [
+          { header: 'Mês', key: 'mes', type: 'text' as const },
+          { header: 'Entrada', key: 'entrada', type: 'currency' as const },
+          { header: 'Saída', key: 'saida', type: 'currency' as const },
+          { header: 'Saldo', key: 'saldo', type: 'currency' as const },
+        ],
+        rows: consolidadoRows,
+      },
+    ];
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Fechamento de Caixa</h1>
-        <p className="text-muted-foreground">Registro diário de vendas e cálculo do saldo líquido</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Fechamento de Caixa</h1>
+          <p className="text-muted-foreground">Registro diário de vendas e cálculo do saldo líquido</p>
+        </div>
+        <ExportExcelButton fileName="Fechamento_Caixa" getSheets={getSheets} />
       </div>
 
       <div className="flex justify-end">

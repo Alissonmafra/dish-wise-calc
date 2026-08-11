@@ -11,6 +11,8 @@ import { Plus, Pencil, Trash2, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatBRL } from '@/lib/formatters';
 import type { ProdutoCardapio, ProdutoIngrediente } from '@/types';
+import ExportExcelButton from '@/components/ExportExcelButton';
+import type { ExportSheet } from '@/lib/exportExcel';
 
 const UNIT_LABELS: Record<string, string> = { g: 'gr', ml: 'ml', un: 'und' };
 
@@ -134,6 +136,36 @@ export default function FichaProduto() {
     ic => !produtos.some(p => p.nome === ic.nome) || (editingId && produtos.find(p => p.id === editingId)?.nome === ic.nome)
   );
 
+  const getSheets = (): ExportSheet[] => {
+    const rows: Record<string, unknown>[] = [];
+    produtos.forEach(p => {
+      p.ingredientes.forEach((ing, idx) => {
+        rows.push({
+          produto: p.nome,
+          custoProduto: p.cmv,
+          item: idx + 1,
+          insumo: getRefName(ing.tipo, ing.referenciaId),
+          unidade: getRefUnit(ing.tipo, ing.referenciaId),
+          quantidade: ing.quantidade,
+          preco: calcLineCost(ing),
+        });
+      });
+    });
+    return [{
+      name: 'Ficha Produto',
+      columns: [
+        { header: 'Produto', key: 'produto', type: 'text' },
+        { header: 'Custo do Produto', key: 'custoProduto', type: 'currency' },
+        { header: 'Item', key: 'item', type: 'number' },
+        { header: 'Insumo', key: 'insumo', type: 'text' },
+        { header: 'Unidade de Medida', key: 'unidade', type: 'text' },
+        { header: 'Quantidade', key: 'quantidade', type: 'number' },
+        { header: 'Preço (R$)', key: 'preco', type: 'currency' },
+      ],
+      rows,
+    }];
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -141,7 +173,10 @@ export default function FichaProduto() {
           <h1 className="text-2xl font-bold text-foreground">Ficha Técnica do Produto</h1>
           <p className="text-muted-foreground text-sm">Monte a composição de cada produto do cardápio com cálculo automático de custo.</p>
         </div>
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nova Ficha</Button>
+        <div className="flex gap-2">
+          <ExportExcelButton fileName="Ficha_Produto" getSheets={getSheets} />
+          <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Nova Ficha</Button>
+        </div>
       </div>
 
       {/* KPI */}
