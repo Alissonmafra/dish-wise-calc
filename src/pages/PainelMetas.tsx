@@ -107,7 +107,34 @@ export default function PainelMetas() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-foreground">Painel de Metas</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-foreground">Painel de Metas</h1>
+        <ExportExcelButton
+          fileName="Painel_Metas"
+          getSheets={() => [{
+            name: 'Painel de Metas',
+            columns: [
+              { header: 'Indicador', key: 'indicador' },
+              ...MESES.map(m => ({ header: m, key: m, type: 'number' as const })),
+              { header: 'Total Ano', key: 'total', type: 'number' as const },
+              { header: 'Status', key: 'status' },
+            ],
+            rows: indicators.map(ind => {
+              const totalVal = ind.getValue(totals.fat, totals.cmv, totals.ebitda, totals.infra, totals.com);
+              const row: Record<string, unknown> = {
+                indicador: ind.label,
+                total: ind.format(totalVal),
+                status: ind.getStatus(totalVal).label,
+              };
+              monthlyData.forEach((m, mi) => {
+                row[MESES[mi]] = ind.format(ind.getValue(m.fat, m.cmv, m.ebitda, m.infra, m.com));
+              });
+              return row;
+            }),
+          }]}
+        />
+      </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {indicators.map(ind => {
