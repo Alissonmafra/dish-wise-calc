@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, ClipboardList } from 'lucide-react';
+import { Plus, Pencil, Trash2, ClipboardList, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatBRL } from '@/lib/formatters';
 import type { ProdutoCardapio, ProdutoIngrediente } from '@/types';
@@ -49,6 +49,13 @@ export default function FichaProduto() {
     setQtdProduzida('1');
     setIngredientes([...p.ingredientes]);
     setDialogOpen(true);
+  };
+
+  const openDuplicate = (p: ProdutoCardapio) => {
+    resetForm();
+    setIngredientes(p.ingredientes.map(ing => ({ ...ing, id: crypto.randomUUID() })));
+    setDialogOpen(true);
+    toast.info('Ficha duplicada. Selecione o novo item do cardápio e salve.');
   };
 
   const parseRef = (val: string) => {
@@ -209,6 +216,7 @@ export default function FichaProduto() {
                 </div>
               </div>
               <div className="flex gap-1">
+                <Button variant="outline" size="icon" title="Duplicar ficha" onClick={() => openDuplicate(p)}><Copy className="h-4 w-4" /></Button>
                 <Button variant="outline" size="icon" onClick={() => openEdit(p)}><Pencil className="h-4 w-4" /></Button>
                 <Button variant="outline" size="icon" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
               </div>
