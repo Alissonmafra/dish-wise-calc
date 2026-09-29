@@ -286,14 +286,14 @@ export default function FichaProduto() {
                   <SelectContent>
                     <SelectGroup>
                       <SelectLabel>Insumos</SelectLabel>
-                      {insumos.map(ins => (
+                      {[...insumos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })).map(ins => (
                         <SelectItem key={ins.id} value={`insumo:${ins.id}`}>{ins.nome}</SelectItem>
                       ))}
                     </SelectGroup>
                     {receitas.length > 0 && (
                       <SelectGroup>
                         <SelectLabel>Receitas Manipuladas</SelectLabel>
-                        {receitas.map(rec => (
+                        {[...receitas].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })).map(rec => (
                           <SelectItem key={rec.id} value={`receita:${rec.id}`}>{rec.nome}</SelectItem>
                         ))}
                       </SelectGroup>
