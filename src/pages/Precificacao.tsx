@@ -311,6 +311,13 @@ export default function Precificacao() {
               <TableBody>
                 {linhas.map((linha, idx) => {
                   const c = calcLinha(linha);
+                  // Produtos já usados em OUTRAS linhas não aparecem nesta lista
+                  const outrosProdutoIds = new Set(
+                    linhas.filter(l => l.id !== linha.id && !!l.produtoId).map(l => l.produtoId)
+                  );
+                  const produtosDisponiveis = produtosComFicha.filter(
+                    p => !outrosProdutoIds.has(p.id)
+                  );
                   return (
                     <TableRow key={linha.id} className={idx % 2 === 1 ? 'bg-muted/50' : ''}>
                       <TableCell className="font-medium">{idx + 1}</TableCell>
@@ -320,7 +327,7 @@ export default function Precificacao() {
                             <SelectValue placeholder="Selecionar" />
                           </SelectTrigger>
                           <SelectContent>
-                            {produtosComFicha.map(p => (
+                            {produtosDisponiveis.map(p => (
                               <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
                             ))}
                           </SelectContent>
