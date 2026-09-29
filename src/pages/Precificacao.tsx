@@ -316,7 +316,7 @@ export default function Precificacao() {
                       <TableCell className="font-medium">{idx + 1}</TableCell>
                       <TableCell>
                         <Select value={linha.produtoId} onValueChange={v => updateLinha(linha.id, 'produtoId', v)}>
-                          <SelectTrigger className="w-[180px]">
+                          <SelectTrigger className="min-w-[220px] font-medium">
                             <SelectValue placeholder="Selecionar" />
                           </SelectTrigger>
                           <SelectContent>
