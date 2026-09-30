@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { sortByName } from '@/lib/alphabetical';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,7 @@ export default function LucroAtual() {
   const isInitialMount = useRef(true);
 
   // Hidratar linhas a partir de lucrosAtuais salvos
-  const [linhas, setLinhas] = useState<LinhaLucro[]>(() => {
+  const [linhas, setLinhas] = useDraftState<LinhaLucro[]>('lucro-atual-linhas', () => {
     if (state.lucrosAtuais.length > 0) {
       return state.lucrosAtuais.map(entradaToLinha);
     }

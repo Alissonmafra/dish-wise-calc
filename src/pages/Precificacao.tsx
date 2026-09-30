@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { sortByName } from '@/lib/alphabetical';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,7 +57,7 @@ export default function Precificacao() {
   const isInitialMount = useRef(true);
 
   // Hidratar linhas a partir de precosProdutos salvos
-  const [linhas, setLinhas] = useState<LinhaPV[]>(() => {
+  const [linhas, setLinhas] = useDraftState<LinhaPV[]>('precificacao-linhas', () => {
     if (state.precosProdutos.length > 0) {
       return state.precosProdutos.map(precoToLinha);
     }
