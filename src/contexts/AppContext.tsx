@@ -359,6 +359,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadedRef = useRef<string | null>(null);
   const requestRef = useRef(0);
+  const hydratedUserRef = useRef<string | null>(null);
 
   const effectiveUserId = viewingAsUserId || user?.id || null;
 
@@ -367,6 +368,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const requestId = ++requestRef.current;
     if (!effectiveUserId) {
       loadedRef.current = null;
+      hydratedUserRef.current = null;
       reducerDispatch({ type: 'LOAD_STATE', payload: initialState });
       return;
     }
@@ -374,6 +376,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Clear current state before loading the target user's data to avoid cross-user leakage
     loadedRef.current = null;
+    hydratedUserRef.current = null;
     reducerDispatch({ type: 'LOAD_STATE', payload: initialState });
 
     async function loadFromSupabase() {
@@ -391,6 +394,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const remoteTime = data?.updated_at ? new Date(data.updated_at).getTime() : 0;
       const loaded = pending?.state && pending.savedAt > remoteTime ? pending.state : data?.state;
       loadedRef.current = effectiveUserId;
+      hydratedUserRef.current = effectiveUserId;
       if (loaded && Object.keys(loaded as object).length > 0) {
         reducerDispatch({ type: 'LOAD_STATE', payload: mergeLoaded(loaded) });
       }
@@ -405,7 +409,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // and never while impersonating another user.
   useEffect(() => {
     if (!user?.id || viewingAsUserId) return;
-    if (loadedRef.current !== user.id) return;
+    if (loadedRef.current !== user.id || hydratedUserRef.current !== user.id) return;
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
