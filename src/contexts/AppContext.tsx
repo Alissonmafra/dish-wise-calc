@@ -346,6 +346,7 @@ try { localStorage.removeItem(STORAGE_KEY); } catch {}
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { user, viewingAsUserId } = useAuth();
   const [state, reducerDispatch] = useReducer(reducer, initialState);
+  const [readyFor, setReadyFor] = React.useState<string | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
   const dispatch = React.useCallback((action: Action) => {
@@ -369,6 +370,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!effectiveUserId) {
       loadedRef.current = null;
       hydratedUserRef.current = null;
+      setReadyFor(null);
       stateRef.current = initialState;
       reducerDispatch({ type: 'LOAD_STATE', payload: initialState });
       return;
@@ -378,6 +380,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Clear current state before loading the target user's data to avoid cross-user leakage
     loadedRef.current = null;
     hydratedUserRef.current = null;
+    setReadyFor(null);
     stateRef.current = initialState;
     reducerDispatch({ type: 'LOAD_STATE', payload: initialState });
 
@@ -400,6 +403,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const restored = loaded && Object.keys(loaded as object).length > 0 ? mergeLoaded(loaded) : initialState;
       stateRef.current = restored;
       reducerDispatch({ type: 'LOAD_STATE', payload: restored });
+      setReadyFor(effectiveUserId);
       if (pending && pending.savedAt <= remoteTime) {
         try { localStorage.removeItem(`pending-state:v1:${effectiveUserId}`); } catch {}
       }
@@ -442,7 +446,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => ({ state, dispatch, dnaTotal, mediaDespesas, mediaFaturamento }), [state, dispatch, dnaTotal, mediaDespesas, mediaFaturamento]);
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return <AppContext.Provider value={value}>
+    {readyFor === effectiveUserId ? children : <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando dados...</div>}
+  </AppContext.Provider>;
 }
 
 export function useApp() {
