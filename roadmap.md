@@ -1,2 +1,2 @@
-- [x] Order named lists, selectors, ficha cards, and matching exports alphabetically without changing saved data.
-- [ ] Verify the ordering while signed in — blocked: no session is available for the requesting account in this preview.
+- [ ] Preserve incomplete forms across navigation and browser restart per account until save or discard.
+- [ ] Protect pending saved-state changes against navigation/refresh and verify representative flows.
