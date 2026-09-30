@@ -27,7 +27,7 @@ const MESES_LABEL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julh
 
 export default function VendasDoDia() {
   const { state, dispatch, dnaTotal } = useApp();
-  const [dataFiltro, setDataFiltro] = useState(todayStr());
+  const [dataFiltro, setDataFiltro] = useDraftState('vendas-data', todayStr());
   const [mesFiltro, setMesFiltro] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;

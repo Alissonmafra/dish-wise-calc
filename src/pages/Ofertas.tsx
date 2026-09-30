@@ -78,8 +78,8 @@ export default function Ofertas() {
   const quadrantes = state.quadrantesOfertas || { maisVendidos: [], menosVendidos: [], maisLucrativos: [], menosLucrativos: [] };
 
   const [periodo, setPeriodo] = useState<Periodo>('30d');
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
+  const [customFrom, setCustomFrom] = useDraftState('ofertas-data-inicio', '');
+  const [customTo, setCustomTo] = useDraftState('ofertas-data-fim', '');
   const [activeTab, setActiveTab] = useState('quadrantes');
   const [filterStatus, setFilterStatus] = useState<'todas' | 'ativa' | 'teste' | 'arquivada'>('todas');
 
