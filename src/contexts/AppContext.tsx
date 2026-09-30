@@ -364,6 +364,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const hydratedUserRef = useRef<string | null>(null);
 
   const effectiveUserId = viewingAsUserId || user?.id || null;
+  const currentTargetRef = useRef(effectiveUserId);
+  currentTargetRef.current = effectiveUserId;
 
   // Reset to initial state and reload whenever the active user changes
   useEffect(() => {
@@ -439,7 +441,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       // Switching account: flush the pending save of the previous one.
-      if (!done && loadedRef.current !== target) void save();
+      if (!done && currentTargetRef.current !== target) void save();
     };
   }, [state, effectiveUserId]);
 
