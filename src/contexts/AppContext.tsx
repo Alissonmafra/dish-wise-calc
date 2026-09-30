@@ -405,6 +405,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
     loadFromSupabase();
+    return () => { requestRef.current++; };
   }, [effectiveUserId, viewingAsUserId]);
 
   // Debounced save to Supabase — only after the current user's state has finished loading,
