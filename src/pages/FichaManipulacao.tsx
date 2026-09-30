@@ -45,33 +45,6 @@ export default function FichaManipulacao() {
     setDialogOpen(true);
   };
 
- ...p, selQtd: value }));
-  const [dialogOpen, setDialogOpen] = useState(hasDraft && (!editingId || receitas.some(r => r.id === editingId)));
-
-  const resetForm = () => {
-    setSelectedManipulado('');
-    setQtdProduzida('');
-    setMedida('');
-    setIngredientes([]);
-    setSelInsumoId('');
-    setSelQtd('');
-    setEditingId(null);
-  };
-
-  const openNew = () => {
-    resetForm();
-    setDialogOpen(true);
-  };
-
-  const openEdit = (r: ReceitaManipulacao) => {
-    setEditingId(r.id);
-    setSelectedManipulado(r.nome);
-    setQtdProduzida(String(r.quantidadeProduzida));
-    setMedida(r.unidade);
-    setIngredientes([...r.ingredientes]);
-    setDialogOpen(true);
-  };
-
   const addIngrediente = () => {
     if (!selInsumoId || !selQtd || parseFloat(selQtd) <= 0) {
       toast.error('Selecione um insumo e informe a quantidade.');

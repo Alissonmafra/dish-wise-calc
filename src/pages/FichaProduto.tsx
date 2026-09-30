@@ -44,26 +44,6 @@ export default function FichaProduto() {
     toast.info('Ficha duplicada. Selecione o novo item do cardápio e salve.');
   };
 
-ingId(null);
-  };
-
-  const openNew = () => { resetForm(); setDialogOpen(true); };
-
-  const openEdit = (p: ProdutoCardapio) => {
-    setEditingId(p.id);
-    setSelectedCardapio(p.nome);
-    setQtdProduzida('1');
-    setIngredientes([...p.ingredientes]);
-    setDialogOpen(true);
-  };
-
-  const openDuplicate = (p: ProdutoCardapio) => {
-    resetForm();
-    setIngredientes(p.ingredientes.map(ing => ({ ...ing, id: crypto.randomUUID() })));
-    setDialogOpen(true);
-    toast.info('Ficha duplicada. Selecione o novo item do cardápio e salve.');
-  };
-
   const parseRef = (val: string) => {
     const [tipo, id] = val.split(':');
     return { tipo: tipo as 'insumo' | 'receita', id };
