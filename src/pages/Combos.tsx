@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { sortByName, compareNames } from '@/lib/alphabetical';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,7 +27,7 @@ export default function Combos() {
   const { state, dispatch, dnaTotal } = useApp();
   const produtosDisponiveis = sortByName(state.produtos.filter(p => p.cmv > 0));
 
-  const [combos, setCombos] = useState<ComboLocal[]>(() =>
+  const [combos, setCombos] = useDraftState<ComboLocal[]>('combos-edicao', () =>
     state.combos.map(c => ({
       id: c.id,
       nome: c.nome,
