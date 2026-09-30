@@ -222,7 +222,7 @@ export default function FichasTecnicas() {
                   ))}
                 </div>
               </div>
-              <DialogFooter><Button onClick={saveReceita}>Salvar</Button></DialogFooter>
+              <DialogFooter><Button variant="outline" onClick={() => { clearReceita(); setShowReceitaModal(false); }}>Descartar</Button><Button onClick={saveReceita}>Salvar</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         </TabsContent>
@@ -290,7 +290,7 @@ export default function FichasTecnicas() {
                   ))}
                 </div>
               </div>
-              <DialogFooter><Button onClick={saveProduto}>Salvar</Button></DialogFooter>
+              <DialogFooter><Button variant="outline" onClick={() => { clearProduto(); setShowProdutoModal(false); }}>Descartar</Button><Button onClick={saveProduto}>Salvar</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         </TabsContent>
