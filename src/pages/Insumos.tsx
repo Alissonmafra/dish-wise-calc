@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { sortByName } from '@/lib/alphabetical';
 import { formatBRL } from '@/lib/formatters';
 import { Card } from '@/components/ui/card';
@@ -29,16 +30,17 @@ export default function Insumos() {
   const { state, dispatch } = useApp();
   const { toast } = useToast();
   const [search, setSearch] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [draft, setDraft, clearDraft, hasDraft] = useDraftState('insumos', { editId: null as string | null, form: emptyForm });
+  const { editId, form } = draft;
+  const setForm = (next: typeof form | ((previous: typeof form) => typeof form)) => setDraft(previous => ({ ...previous, form: typeof next === 'function' ? next(previous.form) : next }));
+  const [showModal, setShowModal] = useState(hasDraft && (!editId || state.insumos.some(i => i.id === editId)));
 
   const filtered = sortByName(state.insumos.filter(i => i.nome.toLowerCase().includes(search.toLowerCase())));
 
-  const openNew = () => { setForm(emptyForm); setEditId(null); setShowModal(true); };
+  const openNew = () => { if (!hasDraft || editId) setDraft({ editId: null, form: emptyForm }); setShowModal(true); };
   const openEdit = (i: Insumo) => {
-    setForm({ nome: i.nome, quantidadeComprada: String(i.quantidadeComprada), unidade: i.unidade, precoPago: String(i.precoPago), percentualPerda: String(i.percentualPerda) });
-    setEditId(i.id); setShowModal(true);
+    if (editId !== i.id || !hasDraft) setDraft({ editId: i.id, form: { nome: i.nome, quantidadeComprada: String(i.quantidadeComprada), unidade: i.unidade, precoPago: String(i.precoPago), percentualPerda: String(i.percentualPerda) } });
+    setShowModal(true);
   };
 
   const save = () => {
@@ -59,6 +61,7 @@ export default function Insumos() {
     } else {
       dispatch({ type: 'SET_INSUMOS', payload: [...state.insumos, { id: crypto.randomUUID(), ...data }] });
     }
+    clearDraft();
     setShowModal(false);
   };
 
@@ -172,7 +175,7 @@ export default function Insumos() {
               <div><Label>Perda (%)</Label><Input type="number" value={form.percentualPerda} onChange={e => setForm(p => ({ ...p, percentualPerda: e.target.value }))} /></div>
             </div>
           </div>
-          <DialogFooter><Button onClick={save}>Salvar</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => { clearDraft(); setShowModal(false); }}>Descartar</Button><Button onClick={save}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
