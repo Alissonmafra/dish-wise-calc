@@ -369,6 +369,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!effectiveUserId) {
       loadedRef.current = null;
       hydratedUserRef.current = null;
+      stateRef.current = initialState;
       reducerDispatch({ type: 'LOAD_STATE', payload: initialState });
       return;
     }
@@ -377,16 +378,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Clear current state before loading the target user's data to avoid cross-user leakage
     loadedRef.current = null;
     hydratedUserRef.current = null;
+    stateRef.current = initialState;
     reducerDispatch({ type: 'LOAD_STATE', payload: initialState });
 
     async function loadFromSupabase() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('app_state')
         .select('state, updated_at')
         .eq('user_id', effectiveUserId)
         .maybeSingle();
 
-      if (requestRef.current !== requestId) return; // Another account started loading.
+      if (requestRef.current !== requestId || error) return; // Never overwrite remote data after a failed load.
       let pending: { savedAt: number; state: AppState } | null = null;
       if (!viewingAsUserId) {
         try { pending = JSON.parse(localStorage.getItem(`pending-state:v1:${effectiveUserId}`) || 'null'); } catch {}
@@ -395,9 +397,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const loaded = pending?.state && pending.savedAt > remoteTime ? pending.state : data?.state;
       loadedRef.current = effectiveUserId;
       hydratedUserRef.current = effectiveUserId;
-      if (loaded && Object.keys(loaded as object).length > 0) {
-        reducerDispatch({ type: 'LOAD_STATE', payload: mergeLoaded(loaded) });
-      }
+      const restored = loaded && Object.keys(loaded as object).length > 0 ? mergeLoaded(loaded) : initialState;
+      stateRef.current = restored;
+      reducerDispatch({ type: 'LOAD_STATE', payload: restored });
       if (pending && pending.savedAt <= remoteTime) {
         try { localStorage.removeItem(`pending-state:v1:${effectiveUserId}`); } catch {}
       }
