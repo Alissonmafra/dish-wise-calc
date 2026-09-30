@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { sortByName } from '@/lib/alphabetical';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,18 +27,26 @@ export default function FichaManipulacao() {
   const { state, dispatch } = useApp();
   const { receitas, insumos, itensManipulados } = state;
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const initialDraft = { editingId: null as string | null, selectedManipulado: '', qtdProduzida: '', medida: '' as UnidadeMedida | '', ingredientes: [] as ReceitaIngrediente[], selInsumoId: '', selQtd: '' };
+  const [draft, setDraft, clearDraft, hasDraft] = useDraftState('ficha-manipulacao', initialDraft);
+  const { editingId, selectedManipulado, qtdProduzida, medida, ingredientes, selInsumoId, selQtd } = draft;
+  const setSelectedManipulado = (value: string) => setDraft(p => ({ ...p, selectedManipulado: value }));
+  const setQtdProduzida = (value: string) => setDraft(p => ({ ...p, qtdProduzida: value }));
+  const setMedida = (value: UnidadeMedida | '') => setDraft(p => ({ ...p, medida: value }));
+  const setIngredientes = (next: ReceitaIngrediente[] | ((p: ReceitaIngrediente[]) => ReceitaIngrediente[])) => setDraft(p => ({ ...p, ingredientes: typeof next === 'function' ? next(p.ingredientes) : next }));
+  const setSelInsumoId = (value: string) => setDraft(p => ({ ...p, selInsumoId: value }));
+  const setSelQtd = (value: string) => setDraft(p => ({ ...p, selQtd: value }));
+  const [dialogOpen, setDialogOpen] = useState(hasDraft && (!editingId || receitas.some(r => r.id === editingId)));
 
-  // Form state
-  const [selectedManipulado, setSelectedManipulado] = useState('');
-  const [qtdProduzida, setQtdProduzida] = useState('');
-  const [medida, setMedida] = useState<UnidadeMedida | ''>('');
-  const [ingredientes, setIngredientes] = useState<ReceitaIngrediente[]>([]);
+  const resetForm = () => clearDraft();
+  const openNew = () => { if (!hasDraft || editingId) setDraft(initialDraft); setDialogOpen(true); };
+  const openEdit = (r: ReceitaManipulacao) => {
+    if (!hasDraft || editingId !== r.id) setDraft({ ...initialDraft, editingId: r.id, selectedManipulado: r.nome, qtdProduzida: String(r.quantidadeProduzida), medida: r.unidade, ingredientes: [...r.ingredientes] });
+    setDialogOpen(true);
+  };
 
-  // Ingredient add state
-  const [selInsumoId, setSelInsumoId] = useState('');
-  const [selQtd, setSelQtd] = useState('');
+ ...p, selQtd: value }));
+  const [dialogOpen, setDialogOpen] = useState(hasDraft && (!editingId || receitas.some(r => r.id === editingId)));
 
   const resetForm = () => {
     setSelectedManipulado('');
@@ -253,7 +262,7 @@ export default function FichaManipulacao() {
       )}
 
       {/* Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={v => { if (!v) { setDialogOpen(false); resetForm(); } }}>
+      <Dialog open={dialogOpen} onOpenChange={v => { if (!v) { setDialogOpen(false); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar Ficha Técnica' : 'Nova Ficha Técnica de Manipulação'}</DialogTitle>
@@ -360,7 +369,7 @@ export default function FichaManipulacao() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { clearDraft(); setDialogOpen(false); }}>Descartar</Button>
             <Button onClick={handleSave}>Salvar Ficha</Button>
           </DialogFooter>
         </DialogContent>

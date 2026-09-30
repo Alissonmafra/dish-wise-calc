@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { sortByName } from '@/lib/alphabetical';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,25 +22,29 @@ export default function FichaProduto() {
   const { state, dispatch } = useApp();
   const { produtos, insumos, receitas, itensCardapio } = state;
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const initialDraft = { editingId: null as string | null, selectedCardapio: '', qtdProduzida: '1', ingredientes: [] as ProdutoIngrediente[], selRef: '', selQtd: '' };
+  const [draft, setDraft, clearDraft, hasDraft] = useDraftState('ficha-produto', initialDraft);
+  const { editingId, selectedCardapio, qtdProduzida, ingredientes, selRef, selQtd } = draft;
+  const setSelectedCardapio = (value: string) => setDraft(p => ({ ...p, selectedCardapio: value }));
+  const setQtdProduzida = (value: string) => setDraft(p => ({ ...p, qtdProduzida: value }));
+  const setIngredientes = (next: ProdutoIngrediente[] | ((p: ProdutoIngrediente[]) => ProdutoIngrediente[])) => setDraft(p => ({ ...p, ingredientes: typeof next === 'function' ? next(p.ingredientes) : next }));
+  const setSelRef = (value: string) => setDraft(p => ({ ...p, selRef: value }));
+  const setSelQtd = (value: string) => setDraft(p => ({ ...p, selQtd: value }));
+  const [dialogOpen, setDialogOpen] = useState(hasDraft && (!editingId || produtos.some(p => p.id === editingId)));
 
-  // Form state
-  const [selectedCardapio, setSelectedCardapio] = useState('');
-  const [qtdProduzida, setQtdProduzida] = useState('1');
-  const [ingredientes, setIngredientes] = useState<ProdutoIngrediente[]>([]);
+  const resetForm = () => clearDraft();
+  const openNew = () => { if (!hasDraft || editingId) setDraft(initialDraft); setDialogOpen(true); };
+  const openEdit = (p: ProdutoCardapio) => {
+    if (!hasDraft || editingId !== p.id) setDraft({ ...initialDraft, editingId: p.id, selectedCardapio: p.nome, ingredientes: [...p.ingredientes] });
+    setDialogOpen(true);
+  };
+  const openDuplicate = (p: ProdutoCardapio) => {
+    setDraft({ ...initialDraft, ingredientes: p.ingredientes.map(ing => ({ ...ing, id: crypto.randomUUID() })) });
+    setDialogOpen(true);
+    toast.info('Ficha duplicada. Selecione o novo item do cardápio e salve.');
+  };
 
-  // Add ingredient state
-  const [selRef, setSelRef] = useState(''); // format: "insumo:id" or "receita:id"
-  const [selQtd, setSelQtd] = useState('');
-
-  const resetForm = () => {
-    setSelectedCardapio('');
-    setQtdProduzida('1');
-    setIngredientes([]);
-    setSelRef('');
-    setSelQtd('');
-    setEditingId(null);
+ingId(null);
   };
 
   const openNew = () => { resetForm(); setDialogOpen(true); };
@@ -253,7 +258,7 @@ export default function FichaProduto() {
       )}
 
       {/* Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={v => { if (!v) { setDialogOpen(false); resetForm(); } }}>
+      <Dialog open={dialogOpen} onOpenChange={v => { if (!v) { setDialogOpen(false); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar Ficha Técnica' : 'Nova Ficha Técnica do Produto'}</DialogTitle>
@@ -357,7 +362,7 @@ export default function FichaProduto() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { clearDraft(); setDialogOpen(false); }}>Descartar</Button>
             <Button onClick={handleSave}>Salvar Ficha</Button>
           </DialogFooter>
         </DialogContent>
