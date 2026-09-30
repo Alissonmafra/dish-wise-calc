@@ -1,2 +1,2 @@
-- [x] Order named lists, selectors, ficha contents, and corresponding exports alphabetically across screens without changing saved data.
-- [ ] Verify representative authenticated flows and build diagnostics.
+- [x] Order named lists, selectors, ficha cards, and matching exports alphabetically without changing saved data.
+- [ ] Verify the ordering while signed in — blocked: no session is available for the requesting account in this preview.
