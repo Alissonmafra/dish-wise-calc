@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { useDraftState } from '@/hooks/useDraftState';
 import { sortByName } from '@/lib/alphabetical';
@@ -36,7 +36,7 @@ export default function FichasTecnicas() {
   const setProdutoForm = (next: typeof produtoForm | ((p: typeof produtoForm) => typeof produtoForm)) => setProdutoDraft(p => ({ ...p, form: typeof next === 'function' ? next(p.form) : next }));
   const [showProdutoModal, setShowProdutoModal] = useState(hasProduto && (!editProdutoId || state.produtos.some(p => p.id === editProdutoId)));
   // Show the correct tab when resuming a product draft.
-  if (showProdutoModal && tab !== 'produtos') setTab('produtos');
+  useEffect(() => { if (showProdutoModal) setTab('produtos'); }, []);
 
   // Receita handlers
   const openNewReceita = () => { if (!hasReceita || editReceitaId) setReceitaDraft({ editId: null, form: emptyReceita }); setShowReceitaModal(true); };
