@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { sortByName, compareNames } from '@/lib/alphabetical';
+import { sortByName } from '@/lib/alphabetical';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -129,13 +129,12 @@ export default function FichaManipulacao() {
 
   const fichasOrdenadas = sortByName(receitas);
   const nomeInsumo = (id: string) => insumos.find(i => i.id === id)?.nome || '—';
-  const ordenarIngredientes = (lista: ReceitaIngrediente[]) => [...lista].sort((a, b) => compareNames(nomeInsumo(a.insumoId), nomeInsumo(b.insumoId)));
 
   const getSheets = (): ExportSheet[] => {
     const rows: Record<string, unknown>[] = [];
     fichasOrdenadas.forEach(r => {
       const custoUnit = r.quantidadeProduzida > 0 ? r.custoTotal / r.quantidadeProduzida : 0;
-      ordenarIngredientes(r.ingredientes).forEach((ing, idx) => {
+      r.ingredientes.forEach((ing, idx) => {
         const insumo = insumos.find(i => i.id === ing.insumoId);
         const lineCost = insumo ? insumo.custoPorUnidade * ing.quantidade : 0;
         rows.push({
@@ -232,7 +231,7 @@ export default function FichaManipulacao() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {ordenarIngredientes(r.ingredientes).map((ing, idx) => {
+                    {r.ingredientes.map((ing, idx) => {
                       const insumo = insumos.find(i => i.id === ing.insumoId);
                       const lineCost = insumo ? insumo.custoPorUnidade * ing.quantidade : 0;
                       return (
@@ -339,7 +338,7 @@ export default function FichaManipulacao() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ordenarIngredientes(ingredientes).map((ing, idx) => {
+                {ingredientes.map((ing, idx) => {
                   const insumo = insumos.find(i => i.id === ing.insumoId);
                   return (
                     <TableRow key={ing.id} className={idx % 2 === 1 ? 'bg-muted/50' : ''}>

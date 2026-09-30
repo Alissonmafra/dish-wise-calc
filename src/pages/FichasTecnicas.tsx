@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { sortByName, compareNames } from '@/lib/alphabetical';
+import { sortByName } from '@/lib/alphabetical';
 import { formatBRL } from '@/lib/formatters';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,14 +77,11 @@ export default function FichasTecnicas() {
   const getInsumoNome = (id: string) => state.insumos.find(i => i.id === id)?.nome || '—';
   const getReceitaNome = (id: string) => state.receitas.find(r => r.id === id)?.nome || '—';
 
-  const ordenarReceitaIngredientes = (lista: ReceitaIngrediente[]) => [...lista].sort((a, b) => compareNames(getInsumoNome(a.insumoId), getInsumoNome(b.insumoId)));
-  const nomeProdutoIngrediente = (ing: ProdutoIngrediente) => ing.tipo === 'insumo' ? getInsumoNome(ing.referenciaId) : getReceitaNome(ing.referenciaId);
-  const ordenarProdutoIngredientes = (lista: ProdutoIngrediente[]) => [...lista].sort((a, b) => compareNames(nomeProdutoIngrediente(a), nomeProdutoIngrediente(b)));
 
   const getSheets = (): ExportSheet[] => {
     const receitasRows: Record<string, unknown>[] = [];
     sortByName(state.receitas).forEach(r => {
-      ordenarReceitaIngredientes(r.ingredientes).forEach(ing => {
+      r.ingredientes.forEach(ing => {
         const insumo = state.insumos.find(i => i.id === ing.insumoId);
         receitasRows.push({
           receita: r.nome,
@@ -101,7 +98,7 @@ export default function FichasTecnicas() {
 
     const produtosRows: Record<string, unknown>[] = [];
     sortByName(state.produtos).forEach(p => {
-      ordenarProdutoIngredientes(p.ingredientes).forEach(ing => {
+      p.ingredientes.forEach(ing => {
         let nome = '', custo = 0;
         if (ing.tipo === 'insumo') { const i = state.insumos.find(x => x.id === ing.referenciaId); nome = i?.nome || '—'; custo = (i?.custoPorUnidade || 0) * ing.quantidade; }
         else { const r = state.receitas.find(x => x.id === ing.referenciaId); nome = r?.nome || '—'; custo = (r?.custoPorUnidade || 0) * ing.quantidade; }
@@ -173,7 +170,7 @@ export default function FichasTecnicas() {
                   <Table>
                     <TableHeader><TableRow><TableHead>Insumo</TableHead><TableHead className="text-right">Quantidade</TableHead><TableHead className="text-right">Custo</TableHead></TableRow></TableHeader>
                     <TableBody>
-                      {ordenarReceitaIngredientes(r.ingredientes).map(ing => {
+                      {r.ingredientes.map(ing => {
                         const insumo = state.insumos.find(i => i.id === ing.insumoId);
                         return (
                           <TableRow key={ing.id}>
@@ -242,7 +239,7 @@ export default function FichasTecnicas() {
                   <Table>
                     <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Item</TableHead><TableHead className="text-right">Quantidade</TableHead><TableHead className="text-right">Custo</TableHead></TableRow></TableHeader>
                     <TableBody>
-                      {ordenarProdutoIngredientes(p.ingredientes).map(ing => {
+                      {p.ingredientes.map(ing => {
                         let nome = '', custo = 0;
                         if (ing.tipo === 'insumo') { const i = state.insumos.find(x => x.id === ing.referenciaId); nome = i?.nome || '—'; custo = (i?.custoPorUnidade || 0) * ing.quantidade; }
                         else { const r = state.receitas.find(x => x.id === ing.referenciaId); nome = r?.nome || '—'; custo = (r?.custoPorUnidade || 0) * ing.quantidade; }

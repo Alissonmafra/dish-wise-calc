@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { sortByName, compareNames } from '@/lib/alphabetical';
+import { compareNames } from '@/lib/alphabetical';
 import type { ItemManipulado } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { sortByName, compareNames } from '@/lib/alphabetical';
+import { sortByName } from '@/lib/alphabetical';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -145,12 +145,11 @@ export default function FichaProduto() {
   );
 
   const fichasOrdenadas = sortByName(produtos);
-  const ordenarIngredientes = (lista: ProdutoIngrediente[]) => [...lista].sort((a, b) => compareNames(getRefName(a.tipo, a.referenciaId), getRefName(b.tipo, b.referenciaId)));
 
   const getSheets = (): ExportSheet[] => {
     const rows: Record<string, unknown>[] = [];
     fichasOrdenadas.forEach(p => {
-      ordenarIngredientes(p.ingredientes).forEach((ing, idx) => {
+      p.ingredientes.forEach((ing, idx) => {
         rows.push({
           produto: p.nome,
           custoProduto: p.cmv,
@@ -237,7 +236,7 @@ export default function FichaProduto() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ordenarIngredientes(p.ingredientes).map((ing, idx) => (
+                  {p.ingredientes.map((ing, idx) => (
                     <TableRow key={ing.id} className={idx % 2 === 1 ? 'bg-muted/50' : ''}>
                       <TableCell>{idx + 1}</TableCell>
                       <TableCell>{getRefName(ing.tipo, ing.referenciaId)}</TableCell>
@@ -339,7 +338,7 @@ export default function FichaProduto() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ordenarIngredientes(ingredientes).map((ing, idx) => (
+                {ingredientes.map((ing, idx) => (
                   <TableRow key={ing.id} className={idx % 2 === 1 ? 'bg-muted/50' : ''}>
                     <TableCell>{idx + 1}</TableCell>
                     <TableCell>{getRefName(ing.tipo, ing.referenciaId)}</TableCell>
