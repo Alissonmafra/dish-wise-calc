@@ -345,7 +345,17 @@ try { localStorage.removeItem(STORAGE_KEY); } catch {}
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { user, viewingAsUserId } = useAuth();
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, reducerDispatch] = useReducer(reducer, initialState);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const dispatch = React.useCallback((action: Action) => {
+    const next = reducer(stateRef.current, action);
+    stateRef.current = next;
+    if (loadedRef.current === user?.id && !viewingAsUserId) {
+      try { localStorage.setItem(`pending-state:v1:${user.id}`, JSON.stringify({ savedAt: Date.now(), state: next })); } catch {}
+    }
+    reducerDispatch(action);
+  }, [user?.id, viewingAsUserId]);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadedRef = useRef<string | null>(null);
 
@@ -355,29 +365,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!effectiveUserId) {
       loadedRef.current = null;
-      dispatch({ type: 'LOAD_STATE', payload: initialState });
+      reducerDispatch({ type: 'LOAD_STATE', payload: initialState });
       return;
     }
     if (loadedRef.current === effectiveUserId) return;
 
     // Clear current state before loading the target user's data to avoid cross-user leakage
     loadedRef.current = null;
-    dispatch({ type: 'LOAD_STATE', payload: initialState });
+    reducerDispatch({ type: 'LOAD_STATE', payload: initialState });
 
     async function loadFromSupabase() {
       const { data } = await supabase
         .from('app_state')
-        .select('state')
+        .select('state, updated_at')
         .eq('user_id', effectiveUserId)
         .maybeSingle();
 
+      if (loadedRef.current !== null) return; // A different account was loaded while this request was in flight.
+      let pending: { savedAt: number; state: AppState } | null = null;
+      if (!viewingAsUserId) {
+        try { pending = JSON.parse(localStorage.getItem(`pending-state:v1:${effectiveUserId}`) || 'null'); } catch {}
+      }
+      const remoteTime = data?.updated_at ? new Date(data.updated_at).getTime() : 0;
+      const loaded = pending?.state && pending.savedAt > remoteTime ? pending.state : data?.state;
       loadedRef.current = effectiveUserId;
-      if (data?.state && Object.keys(data.state as any).length > 0) {
-        dispatch({ type: 'LOAD_STATE', payload: mergeLoaded(data.state) });
+      if (loaded && Object.keys(loaded as object).length > 0) {
+        reducerDispatch({ type: 'LOAD_STATE', payload: mergeLoaded(loaded) });
+      }
+      if (pending && pending.savedAt <= remoteTime) {
+        try { localStorage.removeItem(`pending-state:v1:${effectiveUserId}`); } catch {}
       }
     }
     loadFromSupabase();
-  }, [effectiveUserId]);
+  }, [effectiveUserId, viewingAsUserId]);
 
   // Debounced save to Supabase — only after the current user's state has finished loading,
   // and never while impersonating another user.
@@ -387,9 +407,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
-      await supabase
+      const snapshot = state;
+      const { error } = await supabase
         .from('app_state')
-        .upsert({ user_id: user.id, state: state as any, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+        .upsert({ user_id: user.id, state: snapshot as any, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+      if (!error) {
+        try {
+          const key = `pending-state:v1:${user.id}`;
+          const pending = JSON.parse(localStorage.getItem(key) || 'null');
+          if (pending && JSON.stringify(pending.state) === JSON.stringify(snapshot)) localStorage.removeItem(key);
+        } catch {}
+      }
     }, 1500);
 
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
@@ -403,7 +431,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const dna = state.dnaEmpresa;
   const dnaTotal = dna.custoFixoPercent + dna.mediaCartao + dna.impostos + dna.voucher + (dna.isFranquia ? dna.franquia : 0);
 
-  const value = useMemo(() => ({ state, dispatch, dnaTotal, mediaDespesas, mediaFaturamento }), [state, dnaTotal, mediaDespesas, mediaFaturamento]);
+  const value = useMemo(() => ({ state, dispatch, dnaTotal, mediaDespesas, mediaFaturamento }), [state, dispatch, dnaTotal, mediaDespesas, mediaFaturamento]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
