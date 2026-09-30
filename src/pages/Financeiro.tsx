@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { sortByName } from '@/lib/alphabetical';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
@@ -25,8 +26,8 @@ const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Ag
 
 export default function Financeiro() {
   const { state, dispatch, dnaTotal } = useApp();
-  const [showDespesaModal, setShowDespesaModal] = useState(false);
-  const [newDespesa, setNewDespesa] = useState({ mes: '', descricao: '', valor: '' });
+  const [newDespesa, setNewDespesa, clearDespesaDraft, hasDespesaDraft] = useDraftState('financeiro-despesa', { mes: '', descricao: '', valor: '' });
+  const [showDespesaModal, setShowDespesaModal] = useState(hasDespesaDraft);
 
   const ci = state.custosInvisiveis;
   const ciCalc = useMemo(() => calcularCustosInvisiveis(ci), [ci]);
@@ -66,7 +67,7 @@ export default function Financeiro() {
     const d: DespesaFixa = { id: crypto.randomUUID(), mes: newDespesa.mes, descricao: newDespesa.descricao, valor: parseFloat(newDespesa.valor) || 0 };
     dispatch({ type: 'SET_DESPESAS', payload: [...state.despesasFixas, d] });
     setShowDespesaModal(false);
-    setNewDespesa({ mes: '', descricao: '', valor: '' });
+    clearDespesaDraft();
   };
 
   const removeDespesa = (id: string) => dispatch({ type: 'SET_DESPESAS', payload: state.despesasFixas.filter(d => d.id !== id) });
@@ -385,7 +386,7 @@ export default function Financeiro() {
                 <div><Label>Descrição</Label><Input value={newDespesa.descricao} onChange={e => setNewDespesa(p => ({ ...p, descricao: e.target.value }))} placeholder="Aluguel" /></div>
                 <div><Label>Valor (R$)</Label><Input type="number" value={newDespesa.valor} onChange={e => setNewDespesa(p => ({ ...p, valor: e.target.value }))} /></div>
               </div>
-              <DialogFooter><Button onClick={addDespesa}>Salvar</Button></DialogFooter>
+              <DialogFooter><Button variant="outline" onClick={() => { clearDespesaDraft(); setShowDespesaModal(false); }}>Descartar</Button><Button onClick={addDespesa}>Salvar</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         </TabsContent>

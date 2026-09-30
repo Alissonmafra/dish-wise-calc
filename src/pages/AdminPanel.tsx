@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth, type Profile } from '@/contexts/AuthContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { supabase } from '@/integrations/supabase/client';
 import { createClient } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -36,15 +37,18 @@ export default function AdminPanel() {
   const [clientes, setClientes]   = useState<Profile[]>([]);
   const [loading, setLoading]     = useState(true);
   const [creating, setCreating]   = useState(false);
-  const [showForm, setShowForm]   = useState(false);
+  const [clientDraft, setClientDraft, clearClientDraft, hasClientDraft] = useDraftState('admin-novo-cliente', { nome: '', email: '' });
+  const [showForm, setShowForm]   = useState(hasClientDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editNome, setEditNome]   = useState('');
   const [copyTarget, setCopyTarget] = useState<Profile | null>(null);
   const [copying, setCopying]       = useState(false);
 
-  const [formEmail, setFormEmail] = useState('');
+  const formEmail = clientDraft.email;
+  const setFormEmail = (value: string) => setClientDraft(p => ({ ...p, email: value }));
   const [formSenha, setFormSenha] = useState('');
-  const [formNome, setFormNome]   = useState('');
+  const formNome = clientDraft.nome;
+  const setFormNome = (value: string) => setClientDraft(p => ({ ...p, nome: value }));
   const [showSenha, setShowSenha] = useState(false);
 
   useEffect(() => { loadClientes(); }, []);
@@ -98,7 +102,7 @@ export default function AdminPanel() {
         .eq('id', data.user.id);
 
       toast.success(`Cliente "${formNome}" criado! Ele já pode fazer login.`);
-      setFormEmail(''); setFormSenha(''); setFormNome('');
+      clearClientDraft(); setFormSenha('');
       setShowForm(false);
       setTimeout(loadClientes, 800);
     } catch (err: any) {
@@ -295,8 +299,8 @@ export default function AdminPanel() {
                 <Button type="submit" disabled={creating}>
                   {creating ? 'Criando...' : 'Criar Cliente'}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                  Cancelar
+                <Button type="button" variant="outline" onClick={() => { clearClientDraft(); setFormSenha(''); setShowForm(false); }}>
+                  Descartar
                 </Button>
               </div>
             </form>

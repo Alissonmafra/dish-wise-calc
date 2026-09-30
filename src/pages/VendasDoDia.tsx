@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { sortByName } from '@/lib/alphabetical';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import type { CanalVenda, VendaDia } from '@/types';
@@ -26,16 +27,18 @@ const MESES_LABEL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julh
 
 export default function VendasDoDia() {
   const { state, dispatch, dnaTotal } = useApp();
-  const [dataFiltro, setDataFiltro] = useState(todayStr());
+  const [dataFiltro, setDataFiltro] = useDraftState('vendas-data', todayStr());
   const [mesFiltro, setMesFiltro] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
 
   // Form state
-  const [produtoId, setProdutoId] = useState('');
-  const [canal, setCanal] = useState<CanalVenda>('balcao');
-  const [quantidade, setQuantidade] = useState<number | ''>('');
+  const [draft, setDraft, clearDraft] = useDraftState('venda-pendente', { produtoId: '', canal: 'balcao' as CanalVenda, quantidade: '' as number | '' });
+  const { produtoId, canal, quantidade } = draft;
+  const setProdutoId = (value: string) => setDraft(p => ({ ...p, produtoId: value }));
+  const setCanal = (value: CanalVenda) => setDraft(p => ({ ...p, canal: value }));
+  const setQuantidade = (value: number | '') => setDraft(p => ({ ...p, quantidade: value }));
 
   // Products with ficha técnica (CMV > 0) — PV salvo é opcional
   const produtosDisponiveis = useMemo(() => {
@@ -83,7 +86,7 @@ export default function VendasDoDia() {
     };
 
     dispatch({ type: 'ADD_VENDA', payload: venda });
-    setQuantidade('');
+    clearDraft();
   };
 
   const removerVenda = (id: string) => dispatch({ type: 'REMOVE_VENDA', payload: id });

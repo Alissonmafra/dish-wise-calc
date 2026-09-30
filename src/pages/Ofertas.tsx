@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { sortByName } from '@/lib/alphabetical';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -77,8 +78,8 @@ export default function Ofertas() {
   const quadrantes = state.quadrantesOfertas || { maisVendidos: [], menosVendidos: [], maisLucrativos: [], menosLucrativos: [] };
 
   const [periodo, setPeriodo] = useState<Periodo>('30d');
-  const [customFrom, setCustomFrom] = useState('');
-  const [customTo, setCustomTo] = useState('');
+  const [customFrom, setCustomFrom] = useDraftState('ofertas-data-inicio', '');
+  const [customTo, setCustomTo] = useDraftState('ofertas-data-fim', '');
   const [activeTab, setActiveTab] = useState('quadrantes');
   const [filterStatus, setFilterStatus] = useState<'todas' | 'ativa' | 'teste' | 'arquivada'>('todas');
 
@@ -88,20 +89,34 @@ export default function Ofertas() {
   const [addMaisLucrativos, setAddMaisLucrativos] = useState('');
   const [addMenosLucrativos, setAddMenosLucrativos] = useState('');
 
-  // Offer calculator state
-  const [normalProd1, setNormalProd1] = useState('');
-  const [normalProd2, setNormalProd2] = useState('');
-  const [subidaProdFraco, setSubidaProdFraco] = useState('');
-  const [subidaProdCoringa, setSubidaProdCoringa] = useState('');
-  const [escalaProdCampeao, setEscalaProdCampeao] = useState('');
-  const [escalaProdCoringa, setEscalaProdCoringa] = useState('');
-  const [agressivaNome, setAgressivaNome] = useState('');
-  const [agressivaCmv, setAgressivaCmv] = useState<number | ''>(0);
-  const [agressivaQtd, setAgressivaQtd] = useState(2);
-  const [agressivaLucro, setAgressivaLucro] = useState(10);
-  const [normalLucro, setNormalLucro] = useState<number | ''>('');
-  const [subidaLucro, setSubidaLucro] = useState<number | ''>('');
-  const [escalaLucro, setEscalaLucro] = useState<number | ''>(10);
+  // Simulações ainda não transformadas em ofertas ficam apenas neste aparelho.
+  const [calculatorDraft, setCalculatorDraft] = useDraftState('ofertas-calculadora', { normalProd1: '', normalProd2: '', subidaProdFraco: '', subidaProdCoringa: '', escalaProdCampeao: '', escalaProdCoringa: '', agressivaNome: '', agressivaCmv: 0 as number | '', agressivaQtd: 2, agressivaLucro: 10, normalLucro: '' as number | '', subidaLucro: '' as number | '', escalaLucro: 10 as number | '' });
+  const normalProd1 = calculatorDraft.normalProd1;
+  const setNormalProd1 = (value: string) => setCalculatorDraft(p => ({ ...p, normalProd1: value }));
+  const normalProd2 = calculatorDraft.normalProd2;
+  const setNormalProd2 = (value: string) => setCalculatorDraft(p => ({ ...p, normalProd2: value }));
+  const subidaProdFraco = calculatorDraft.subidaProdFraco;
+  const setSubidaProdFraco = (value: string) => setCalculatorDraft(p => ({ ...p, subidaProdFraco: value }));
+  const subidaProdCoringa = calculatorDraft.subidaProdCoringa;
+  const setSubidaProdCoringa = (value: string) => setCalculatorDraft(p => ({ ...p, subidaProdCoringa: value }));
+  const escalaProdCampeao = calculatorDraft.escalaProdCampeao;
+  const setEscalaProdCampeao = (value: string) => setCalculatorDraft(p => ({ ...p, escalaProdCampeao: value }));
+  const escalaProdCoringa = calculatorDraft.escalaProdCoringa;
+  const setEscalaProdCoringa = (value: string) => setCalculatorDraft(p => ({ ...p, escalaProdCoringa: value }));
+  const agressivaNome = calculatorDraft.agressivaNome;
+  const setAgressivaNome = (value: string) => setCalculatorDraft(p => ({ ...p, agressivaNome: value }));
+  const agressivaCmv = calculatorDraft.agressivaCmv;
+  const setAgressivaCmv = (value: number | '') => setCalculatorDraft(p => ({ ...p, agressivaCmv: value }));
+  const agressivaQtd = calculatorDraft.agressivaQtd;
+  const setAgressivaQtd = (value: number) => setCalculatorDraft(p => ({ ...p, agressivaQtd: value }));
+  const agressivaLucro = calculatorDraft.agressivaLucro;
+  const setAgressivaLucro = (value: number) => setCalculatorDraft(p => ({ ...p, agressivaLucro: value }));
+  const normalLucro = calculatorDraft.normalLucro;
+  const setNormalLucro = (value: number | '') => setCalculatorDraft(p => ({ ...p, normalLucro: value }));
+  const subidaLucro = calculatorDraft.subidaLucro;
+  const setSubidaLucro = (value: number | '') => setCalculatorDraft(p => ({ ...p, subidaLucro: value }));
+  const escalaLucro = calculatorDraft.escalaLucro;
+  const setEscalaLucro = (value: number | '') => setCalculatorDraft(p => ({ ...p, escalaLucro: value }));
 
   /* ───── build product analysis ───── */
   const produtosAnalise = useMemo<ProdutoAnalise[]>(() => {

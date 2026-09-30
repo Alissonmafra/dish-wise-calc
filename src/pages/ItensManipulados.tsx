@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { compareNames } from '@/lib/alphabetical';
 import type { ItemManipulado } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,9 +27,11 @@ export default function ItensManipulados() {
   const itens = state.itensManipulados;
 
   const [search, setSearch] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<ItemManipulado | null>(null);
-  const [nome, setNome] = useState('');
+  const [draft, setDraft, clearDraft, hasDraft] = useDraftState('ItensManipulados', { editId: null as string | null, nome: '' });
+  const editingItem = itens.find(i => i.id === draft.editId) || null;
+  const nome = draft.nome;
+  const setNome = (value: string) => setDraft(previous => ({ ...previous, nome: value }));
+  const [dialogOpen, setDialogOpen] = useState(hasDraft && (!draft.editId || !!editingItem));
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = itens.filter(i =>
@@ -36,14 +39,12 @@ export default function ItensManipulados() {
   ).sort((a, b) => compareNames(a.nome, b.nome));
 
   function openAdd() {
-    setEditingItem(null);
-    setNome('');
+    if (!hasDraft || draft.editId) setDraft({ editId: null, nome: '' });
     setDialogOpen(true);
   }
 
   function openEdit(item: ItemManipulado) {
-    setEditingItem(item);
-    setNome(item.nome);
+    if (!hasDraft || draft.editId !== item.id) setDraft({ editId: item.id, nome: item.nome });
     setDialogOpen(true);
   }
 
@@ -76,6 +77,7 @@ export default function ItensManipulados() {
       dispatch({ type: 'SET_ITENS_MANIPULADOS', payload: [...itens, newItem] });
       toast.success('Receita adicionada!');
     }
+    clearDraft();
     setDialogOpen(false);
   }
 
@@ -197,7 +199,7 @@ export default function ItensManipulados() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { clearDraft(); setDialogOpen(false); }}>Descartar</Button>
             <Button onClick={handleSave}>{editingItem ? 'Salvar' : 'Adicionar'}</Button>
           </DialogFooter>
         </DialogContent>

@@ -1,1 +1,2 @@
 - Order named entities for display using the shared pt-BR collator on copies, not persisted arrays; this preserves calculations and references while keeping selection consistent.
+- Keep incomplete form drafts in account-and-view-scoped localStorage via useDraftState, never credentials; synchronous writes preserve the final keystroke across navigation or reload.

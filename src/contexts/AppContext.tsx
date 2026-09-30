@@ -345,51 +345,88 @@ try { localStorage.removeItem(STORAGE_KEY); } catch {}
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { user, viewingAsUserId } = useAuth();
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, reducerDispatch] = useReducer(reducer, initialState);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const dispatch = React.useCallback((action: Action) => {
+    const next = reducer(stateRef.current, action);
+    stateRef.current = next;
+    if (loadedRef.current === user?.id && !viewingAsUserId) {
+      try { localStorage.setItem(`pending-state:v1:${user.id}`, JSON.stringify({ savedAt: Date.now(), state: next })); } catch {}
+    }
+    reducerDispatch(action);
+  }, [user?.id, viewingAsUserId]);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadedRef = useRef<string | null>(null);
+  const requestRef = useRef(0);
+  const hydratedUserRef = useRef<string | null>(null);
 
   const effectiveUserId = viewingAsUserId || user?.id || null;
 
   // Reset to initial state and reload whenever the active user changes
   useEffect(() => {
+    const requestId = ++requestRef.current;
     if (!effectiveUserId) {
       loadedRef.current = null;
-      dispatch({ type: 'LOAD_STATE', payload: initialState });
+      hydratedUserRef.current = null;
+      stateRef.current = initialState;
+      reducerDispatch({ type: 'LOAD_STATE', payload: initialState });
       return;
     }
     if (loadedRef.current === effectiveUserId) return;
 
     // Clear current state before loading the target user's data to avoid cross-user leakage
     loadedRef.current = null;
-    dispatch({ type: 'LOAD_STATE', payload: initialState });
+    hydratedUserRef.current = null;
+    stateRef.current = initialState;
+    reducerDispatch({ type: 'LOAD_STATE', payload: initialState });
 
     async function loadFromSupabase() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('app_state')
-        .select('state')
+        .select('state, updated_at')
         .eq('user_id', effectiveUserId)
         .maybeSingle();
 
+      if (requestRef.current !== requestId || error) return; // Never overwrite remote data after a failed load.
+      let pending: { savedAt: number; state: AppState } | null = null;
+      if (!viewingAsUserId) {
+        try { pending = JSON.parse(localStorage.getItem(`pending-state:v1:${effectiveUserId}`) || 'null'); } catch {}
+      }
+      const remoteTime = data?.updated_at ? new Date(data.updated_at).getTime() : 0;
+      const loaded = pending?.state && pending.savedAt > remoteTime ? pending.state : data?.state;
       loadedRef.current = effectiveUserId;
-      if (data?.state && Object.keys(data.state as any).length > 0) {
-        dispatch({ type: 'LOAD_STATE', payload: mergeLoaded(data.state) });
+      hydratedUserRef.current = effectiveUserId;
+      const restored = loaded && Object.keys(loaded as object).length > 0 ? mergeLoaded(loaded) : initialState;
+      stateRef.current = restored;
+      reducerDispatch({ type: 'LOAD_STATE', payload: restored });
+      if (pending && pending.savedAt <= remoteTime) {
+        try { localStorage.removeItem(`pending-state:v1:${effectiveUserId}`); } catch {}
       }
     }
     loadFromSupabase();
-  }, [effectiveUserId]);
+    return () => { requestRef.current++; };
+  }, [effectiveUserId, viewingAsUserId]);
 
   // Debounced save to Supabase — only after the current user's state has finished loading,
   // and never while impersonating another user.
   useEffect(() => {
     if (!user?.id || viewingAsUserId) return;
-    if (loadedRef.current !== user.id) return;
+    if (loadedRef.current !== user.id || hydratedUserRef.current !== user.id) return;
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
-      await supabase
+      const snapshot = state;
+      const { error } = await supabase
         .from('app_state')
-        .upsert({ user_id: user.id, state: state as any, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+        .upsert({ user_id: user.id, state: snapshot as any, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+      if (!error) {
+        try {
+          const key = `pending-state:v1:${user.id}`;
+          const pending = JSON.parse(localStorage.getItem(key) || 'null');
+          if (pending && JSON.stringify(pending.state) === JSON.stringify(snapshot)) localStorage.removeItem(key);
+        } catch {}
+      }
     }, 1500);
 
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
@@ -403,7 +440,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const dna = state.dnaEmpresa;
   const dnaTotal = dna.custoFixoPercent + dna.mediaCartao + dna.impostos + dna.voucher + (dna.isFranquia ? dna.franquia : 0);
 
-  const value = useMemo(() => ({ state, dispatch, dnaTotal, mediaDespesas, mediaFaturamento }), [state, dnaTotal, mediaDespesas, mediaFaturamento]);
+  const value = useMemo(() => ({ state, dispatch, dnaTotal, mediaDespesas, mediaFaturamento }), [state, dispatch, dnaTotal, mediaDespesas, mediaFaturamento]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

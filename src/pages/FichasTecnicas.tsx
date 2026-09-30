@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { sortByName } from '@/lib/alphabetical';
 import { formatBRL } from '@/lib/formatters';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,20 +21,27 @@ export default function FichasTecnicas() {
   const [tab, setTab] = useState('receitas');
 
   // Receita state
-  const [showReceitaModal, setShowReceitaModal] = useState(false);
-  const [editReceitaId, setEditReceitaId] = useState<string | null>(null);
-  const [receitaForm, setReceitaForm] = useState({ nome: '', quantidadeProduzida: '', unidade: 'g' as UnidadeMedida, ingredientes: [] as ReceitaIngrediente[] });
+  const emptyReceita = { nome: '', quantidadeProduzida: '', unidade: 'g' as UnidadeMedida, ingredientes: [] as ReceitaIngrediente[] };
+  const [receitaDraft, setReceitaDraft, clearReceita, hasReceita] = useDraftState('fichas-tecnicas-receita', { editId: null as string | null, form: emptyReceita });
+  const editReceitaId = receitaDraft.editId;
+  const receitaForm = receitaDraft.form;
+  const setReceitaForm = (next: typeof receitaForm | ((p: typeof receitaForm) => typeof receitaForm)) => setReceitaDraft(p => ({ ...p, form: typeof next === 'function' ? next(p.form) : next }));
+  const [showReceitaModal, setShowReceitaModal] = useState(hasReceita && (!editReceitaId || state.receitas.some(r => r.id === editReceitaId)));
 
   // Produto state
-  const [showProdutoModal, setShowProdutoModal] = useState(false);
-  const [editProdutoId, setEditProdutoId] = useState<string | null>(null);
-  const [produtoForm, setProdutoForm] = useState({ nome: '', ingredientes: [] as ProdutoIngrediente[], custoEmbalagem: '' });
+  const emptyProduto = { nome: '', ingredientes: [] as ProdutoIngrediente[], custoEmbalagem: '' };
+  const [produtoDraft, setProdutoDraft, clearProduto, hasProduto] = useDraftState('fichas-tecnicas-produto', { editId: null as string | null, form: emptyProduto });
+  const editProdutoId = produtoDraft.editId;
+  const produtoForm = produtoDraft.form;
+  const setProdutoForm = (next: typeof produtoForm | ((p: typeof produtoForm) => typeof produtoForm)) => setProdutoDraft(p => ({ ...p, form: typeof next === 'function' ? next(p.form) : next }));
+  const [showProdutoModal, setShowProdutoModal] = useState(hasProduto && (!editProdutoId || state.produtos.some(p => p.id === editProdutoId)));
+  // Show the correct tab when resuming a product draft.
+  useEffect(() => { if (showProdutoModal) setTab('produtos'); }, []);
 
   // Receita handlers
-  const openNewReceita = () => { setReceitaForm({ nome: '', quantidadeProduzida: '', unidade: 'g', ingredientes: [] }); setEditReceitaId(null); setShowReceitaModal(true); };
+  const openNewReceita = () => { if (!hasReceita || editReceitaId) setReceitaDraft({ editId: null, form: emptyReceita }); setShowReceitaModal(true); };
   const openEditReceita = (r: ReceitaManipulacao) => {
-    setReceitaForm({ nome: r.nome, quantidadeProduzida: String(r.quantidadeProduzida), unidade: r.unidade, ingredientes: [...r.ingredientes] });
-    setEditReceitaId(r.id); setShowReceitaModal(true);
+    setReceitaDraft({ editId: r.id, form: { nome: r.nome, quantidadeProduzida: String(r.quantidadeProduzida), unidade: r.unidade, ingredientes: [...r.ingredientes] } }); setShowReceitaModal(true);
   };
   const addReceitaIngrediente = () => setReceitaForm(p => ({ ...p, ingredientes: [...p.ingredientes, { id: crypto.randomUUID(), insumoId: '', quantidade: 0 }] }));
   const removeReceitaIngrediente = (id: string) => setReceitaForm(p => ({ ...p, ingredientes: p.ingredientes.filter(i => i.id !== id) }));
@@ -48,15 +56,14 @@ export default function FichasTecnicas() {
     } else {
       dispatch({ type: 'SET_RECEITAS', payload: [...state.receitas, data] });
     }
-    setShowReceitaModal(false);
+    clearReceita(); setShowReceitaModal(false);
   };
   const removeReceita = (id: string) => dispatch({ type: 'SET_RECEITAS', payload: state.receitas.filter(r => r.id !== id) });
 
   // Produto handlers
-  const openNewProduto = () => { setProdutoForm({ nome: '', ingredientes: [], custoEmbalagem: '' }); setEditProdutoId(null); setShowProdutoModal(true); };
+  const openNewProduto = () => { if (!hasProduto || editProdutoId) setProdutoDraft({ editId: null, form: emptyProduto }); setShowProdutoModal(true); };
   const openEditProduto = (p: ProdutoCardapio) => {
-    setProdutoForm({ nome: p.nome, ingredientes: [...p.ingredientes], custoEmbalagem: String(p.custoEmbalagem) });
-    setEditProdutoId(p.id); setShowProdutoModal(true);
+    setProdutoDraft({ editId: p.id, form: { nome: p.nome, ingredientes: [...p.ingredientes], custoEmbalagem: String(p.custoEmbalagem) } }); setShowProdutoModal(true);
   };
   const addProdutoIngrediente = () => setProdutoForm(p => ({ ...p, ingredientes: [...p.ingredientes, { id: crypto.randomUUID(), tipo: 'insumo' as const, referenciaId: '', quantidade: 0 }] }));
   const removeProdutoIngrediente = (id: string) => setProdutoForm(p => ({ ...p, ingredientes: p.ingredientes.filter(i => i.id !== id) }));
@@ -70,7 +77,7 @@ export default function FichasTecnicas() {
     } else {
       dispatch({ type: 'SET_PRODUTOS', payload: [...state.produtos, data] });
     }
-    setShowProdutoModal(false);
+    clearProduto(); setShowProdutoModal(false);
   };
   const removeProduto = (id: string) => dispatch({ type: 'SET_PRODUTOS', payload: state.produtos.filter(p => p.id !== id) });
 
@@ -217,7 +224,7 @@ export default function FichasTecnicas() {
                   ))}
                 </div>
               </div>
-              <DialogFooter><Button onClick={saveReceita}>Salvar</Button></DialogFooter>
+              <DialogFooter><Button variant="outline" onClick={() => { clearReceita(); setShowReceitaModal(false); }}>Descartar</Button><Button onClick={saveReceita}>Salvar</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         </TabsContent>
@@ -285,7 +292,7 @@ export default function FichasTecnicas() {
                   ))}
                 </div>
               </div>
-              <DialogFooter><Button onClick={saveProduto}>Salvar</Button></DialogFooter>
+              <DialogFooter><Button variant="outline" onClick={() => { clearProduto(); setShowProdutoModal(false); }}>Descartar</Button><Button onClick={saveProduto}>Salvar</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         </TabsContent>

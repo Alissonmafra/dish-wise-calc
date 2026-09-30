@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useDraftState } from '@/hooks/useDraftState';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,8 +32,8 @@ const emptyForm = {
 
 export default function Fechamento() {
   const { state, dispatch } = useApp();
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ ...emptyForm });
+  const [form, setForm, clearDraft, hasDraft] = useDraftState('fechamento', { ...emptyForm });
+  const [showModal, setShowModal] = useState(hasDraft);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(p => ({ ...p, [k]: e.target.value }));
@@ -54,7 +55,7 @@ export default function Fechamento() {
     };
     dispatch({ type: 'SET_FECHAMENTOS', payload: [...state.fechamentos, f] });
     setShowModal(false);
-    setForm({ ...emptyForm });
+    clearDraft();
   };
 
   const remove = (id: string) =>
@@ -307,7 +308,7 @@ export default function Fechamento() {
               <div><Label>Compras CMV+Emb. (R$)</Label><Input type="number" step="0.01" value={form.comprasCMV} onChange={set('comprasCMV')} /></div>
             </div>
           </div>
-          <DialogFooter><Button onClick={save}>Salvar</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => { clearDraft(); setShowModal(false); }}>Descartar</Button><Button onClick={save}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
