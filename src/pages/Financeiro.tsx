@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { sortByName, compareNames } from '@/lib/alphabetical';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { calcularCustosInvisiveis } from '@/lib/custosInvisiveisCalc';
 import ImpostosTab from '@/components/ImpostosTab';
@@ -203,7 +204,7 @@ export default function Financeiro() {
         { header: 'Salário Base (R$)', key: 'sal', type: 'currency' },
         { header: 'Total c/ Encargos (R$)', key: 'total', type: 'currency' },
       ],
-      rows: funcDetails.map(f => ({ nome: f.nome, cargo: f.cargo, sal: f.sal, total: f.total })),
+      rows: sortByName(funcDetails).map(f => ({ nome: f.nome, cargo: f.cargo, sal: f.sal, total: f.total })),
     };
 
     const veiculosSheet: ExportSheet = {
@@ -212,7 +213,7 @@ export default function Financeiro() {
         { header: 'Veículo', key: 'nome', type: 'text' },
         { header: 'Total Mensal (R$)', key: 'total', type: 'currency' },
       ],
-      rows: veicDetails.map(v => ({ nome: v.nome, total: v.total })),
+      rows: sortByName(veicDetails).map(v => ({ nome: v.nome, total: v.total })),
     };
 
     const faturamentoSheet: ExportSheet = {
@@ -450,7 +451,7 @@ export default function Financeiro() {
               <AccordionTrigger className="text-base font-semibold">Salário e Provisionamentos</AccordionTrigger>
               <AccordionContent className="space-y-3 pt-2">
                 <Button size="sm" onClick={addFuncionario}><Plus className="h-4 w-4 mr-1" />Adicionar Funcionário</Button>
-                {ci.funcionarios.map((f, idx) => {
+                {sortByName(ci.funcionarios).map((f, idx) => {
                   const det = funcDetails.find(d => d.id === f.id);
                   return (
                     <Card key={f.id} className="p-4 space-y-3">
@@ -546,7 +547,7 @@ export default function Financeiro() {
               <AccordionTrigger className="text-base font-semibold">Veículos</AccordionTrigger>
               <AccordionContent className="space-y-3 pt-2">
                 <Button size="sm" onClick={addVeiculo}><Plus className="h-4 w-4 mr-1" />Adicionar Veículo</Button>
-                {ci.veiculos.map((v, idx) => {
+                {sortByName(ci.veiculos).map((v, idx) => {
                   const det = veicDetails.find(d => d.id === v.id);
                   return (
                     <Card key={v.id} className="p-4 space-y-3">

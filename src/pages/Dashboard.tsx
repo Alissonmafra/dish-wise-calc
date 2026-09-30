@@ -1,4 +1,5 @@
 import { useApp } from '@/contexts/AppContext';
+import { sortByName, compareNames } from '@/lib/alphabetical';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, Package, BarChart3, ShieldCheck, ShieldAlert } from 'lucide-react';
@@ -20,7 +21,7 @@ export default function Dashboard() {
     ...(dna.isFranquia && dna.franquia > 0 ? [{ name: 'Franquia', value: dna.franquia }] : []),
   ].filter(d => d.value > 0);
 
-  const produtoRent = state.produtos.map(p => {
+  const produtoRent = sortByName(state.produtos).map(p => {
     const precoVenda = p.cmv / (1 - dnaTotal / 100 - 0.1);
     const lucro = precoVenda > 0 ? ((precoVenda - p.cmv - precoVenda * dnaTotal / 100) / precoVenda) * 100 : 0;
     return { name: p.nome, cmv: p.cmv, lucro: Math.max(lucro, 0) };

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { sortByName, compareNames } from '@/lib/alphabetical';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -143,10 +144,13 @@ export default function FichaProduto() {
     ic => !produtos.some(p => p.nome === ic.nome) || (editingId && produtos.find(p => p.id === editingId)?.nome === ic.nome)
   );
 
+  const fichasOrdenadas = sortByName(produtos);
+  const ordenarIngredientes = (lista: ProdutoIngrediente[]) => [...lista].sort((a, b) => compareNames(getRefName(a.tipo, a.referenciaId), getRefName(b.tipo, b.referenciaId)));
+
   const getSheets = (): ExportSheet[] => {
     const rows: Record<string, unknown>[] = [];
-    produtos.forEach(p => {
-      p.ingredientes.forEach((ing, idx) => {
+    fichasOrdenadas.forEach(p => {
+      ordenarIngredientes(p.ingredientes).forEach((ing, idx) => {
         rows.push({
           produto: p.nome,
           custoProduto: p.cmv,
@@ -205,7 +209,7 @@ export default function FichaProduto() {
           </CardContent>
         </Card>
       ) : (
-        produtos.map(p => (
+        fichasOrdenadas.map(p => (
           <Card key={p.id}>
             <CardHeader className="flex flex-row items-start justify-between pb-2">
               <div>
@@ -233,7 +237,7 @@ export default function FichaProduto() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {p.ingredientes.map((ing, idx) => (
+                  {ordenarIngredientes(p.ingredientes).map((ing, idx) => (
                     <TableRow key={ing.id} className={idx % 2 === 1 ? 'bg-muted/50' : ''}>
                       <TableCell>{idx + 1}</TableCell>
                       <TableCell>{getRefName(ing.tipo, ing.referenciaId)}</TableCell>
@@ -262,7 +266,7 @@ export default function FichaProduto() {
               <Select value={selectedCardapio} onValueChange={setSelectedCardapio}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {availableCardapio.map(ic => (
+                  {sortByName(availableCardapio).map(ic => (
                     <SelectItem key={ic.id} value={ic.nome}>{ic.nome}</SelectItem>
                   ))}
                   {availableCardapio.length === 0 && (
@@ -294,14 +298,14 @@ export default function FichaProduto() {
                   <SelectContent>
                     <SelectGroup>
                       <SelectLabel>Insumos</SelectLabel>
-                      {[...insumos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })).map(ins => (
+                      {sortByName(insumos).map(ins => (
                         <SelectItem key={ins.id} value={`insumo:${ins.id}`}>{ins.nome}</SelectItem>
                       ))}
                     </SelectGroup>
                     {receitas.length > 0 && (
                       <SelectGroup>
                         <SelectLabel>Receitas Manipuladas</SelectLabel>
-                        {[...receitas].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })).map(rec => (
+                        {sortByName(receitas).map(rec => (
                           <SelectItem key={rec.id} value={`receita:${rec.id}`}>{rec.nome}</SelectItem>
                         ))}
                       </SelectGroup>
@@ -335,7 +339,7 @@ export default function FichaProduto() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ingredientes.map((ing, idx) => (
+                {ordenarIngredientes(ingredientes).map((ing, idx) => (
                   <TableRow key={ing.id} className={idx % 2 === 1 ? 'bg-muted/50' : ''}>
                     <TableCell>{idx + 1}</TableCell>
                     <TableCell>{getRefName(ing.tipo, ing.referenciaId)}</TableCell>

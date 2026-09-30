@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { sortByName, compareNames } from '@/lib/alphabetical';
 import { calcularImpostoSimples } from '@/lib/simplesNacionalCalc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -135,7 +136,7 @@ export default function MiniDRE() {
               <Select value={selectedProduto} onValueChange={v => { setSelectedProduto(v); const pr = produtos.find(x => x.id === v); if (pr) setPrecoVendaManual(0); }}>
                 <SelectTrigger><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
                 <SelectContent>
-                  {produtos.map(pr => <SelectItem key={pr.id} value={pr.id}>{pr.nome}</SelectItem>)}
+                  {sortByName(produtos).map(pr => <SelectItem key={pr.id} value={pr.id}>{pr.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

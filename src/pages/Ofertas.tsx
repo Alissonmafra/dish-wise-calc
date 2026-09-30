@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { sortByName, compareNames } from '@/lib/alphabetical';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -329,7 +330,7 @@ export default function Ofertas() {
   }
 
   /* ───── product select options ───── */
-  const prodOptions = produtosAnalise.map(p => ({ value: p.id, label: `${p.nome} (${formatBRL(p.pv)})` }));
+  const prodOptions = sortByName(produtosAnalise).map(p => ({ value: p.id, label: `${p.nome} (${formatBRL(p.pv)})` }));
 
   const filteredOfertas = (state.ofertas || []).filter(o => filterStatus === 'todas' || o.status === filterStatus);
 
@@ -338,7 +339,7 @@ export default function Ofertas() {
     title: string; icon: React.ReactNode; data: ProdutoAnalise[];
     quadKey: keyof QuadrantesOfertas; addValue: string; setAddValue: (v: string) => void;
   }) {
-    const availableProducts = produtosAnalise.filter(p => !quadrantes[quadKey].includes(p.id));
+    const availableProducts = sortByName(produtosAnalise.filter(p => !quadrantes[quadKey].includes(p.id)));
     return (
       <Card>
         <CardHeader className="pb-3">

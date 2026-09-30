@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { sortByName, compareNames } from '@/lib/alphabetical';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +27,7 @@ function entradaToLinha(e: LucroAtualEntrada): LinhaLucro {
 export default function LucroAtual() {
   const { state, dnaTotal, dispatch } = useApp();
 
-  const produtosComFicha = state.produtos.filter(p => p.cmv > 0);
+  const produtosComFicha = sortByName(state.produtos.filter(p => p.cmv > 0));
   const isInitialMount = useRef(true);
 
   // Hidratar linhas a partir de lucrosAtuais salvos

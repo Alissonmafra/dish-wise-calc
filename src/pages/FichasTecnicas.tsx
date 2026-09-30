@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { sortByName, compareNames } from '@/lib/alphabetical';
 import { formatBRL } from '@/lib/formatters';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,10 +77,14 @@ export default function FichasTecnicas() {
   const getInsumoNome = (id: string) => state.insumos.find(i => i.id === id)?.nome || '—';
   const getReceitaNome = (id: string) => state.receitas.find(r => r.id === id)?.nome || '—';
 
+  const ordenarReceitaIngredientes = (lista: ReceitaIngrediente[]) => [...lista].sort((a, b) => compareNames(getInsumoNome(a.insumoId), getInsumoNome(b.insumoId)));
+  const nomeProdutoIngrediente = (ing: ProdutoIngrediente) => ing.tipo === 'insumo' ? getInsumoNome(ing.referenciaId) : getReceitaNome(ing.referenciaId);
+  const ordenarProdutoIngredientes = (lista: ProdutoIngrediente[]) => [...lista].sort((a, b) => compareNames(nomeProdutoIngrediente(a), nomeProdutoIngrediente(b)));
+
   const getSheets = (): ExportSheet[] => {
     const receitasRows: Record<string, unknown>[] = [];
-    state.receitas.forEach(r => {
-      r.ingredientes.forEach(ing => {
+    sortByName(state.receitas).forEach(r => {
+      ordenarReceitaIngredientes(r.ingredientes).forEach(ing => {
         const insumo = state.insumos.find(i => i.id === ing.insumoId);
         receitasRows.push({
           receita: r.nome,
@@ -95,8 +100,8 @@ export default function FichasTecnicas() {
     });
 
     const produtosRows: Record<string, unknown>[] = [];
-    state.produtos.forEach(p => {
-      p.ingredientes.forEach(ing => {
+    sortByName(state.produtos).forEach(p => {
+      ordenarProdutoIngredientes(p.ingredientes).forEach(ing => {
         let nome = '', custo = 0;
         if (ing.tipo === 'insumo') { const i = state.insumos.find(x => x.id === ing.referenciaId); nome = i?.nome || '—'; custo = (i?.custoPorUnidade || 0) * ing.quantidade; }
         else { const r = state.receitas.find(x => x.id === ing.referenciaId); nome = r?.nome || '—'; custo = (r?.custoPorUnidade || 0) * ing.quantidade; }
@@ -150,7 +155,7 @@ export default function FichasTecnicas() {
         <TabsContent value="receitas" className="space-y-4">
           <div className="flex justify-end"><Button onClick={openNewReceita}><Plus className="h-4 w-4 mr-1" />Nova Receita</Button></div>
           <div className="grid gap-4">
-            {state.receitas.map(r => (
+            {sortByName(state.receitas).map(r => (
               <Card key={r.id}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-lg">{r.nome}</CardTitle>
@@ -168,7 +173,7 @@ export default function FichasTecnicas() {
                   <Table>
                     <TableHeader><TableRow><TableHead>Insumo</TableHead><TableHead className="text-right">Quantidade</TableHead><TableHead className="text-right">Custo</TableHead></TableRow></TableHeader>
                     <TableBody>
-                      {r.ingredientes.map(ing => {
+                      {ordenarReceitaIngredientes(r.ingredientes).map(ing => {
                         const insumo = state.insumos.find(i => i.id === ing.insumoId);
                         return (
                           <TableRow key={ing.id}>
@@ -206,7 +211,7 @@ export default function FichasTecnicas() {
                       <div className="flex-1"><Label className="text-xs">Insumo</Label>
                         <Select value={ing.insumoId} onValueChange={v => setReceitaForm(p => ({ ...p, ingredientes: p.ingredientes.map((i, j) => j === idx ? { ...i, insumoId: v } : i) }))}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>{state.insumos.map(i => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>)}</SelectContent>
+                          <SelectContent>{sortByName(state.insumos).map(i => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                       <div className="w-28"><Label className="text-xs">Quantidade</Label><Input type="number" value={ing.quantidade || ''} onChange={e => setReceitaForm(p => ({ ...p, ingredientes: p.ingredientes.map((i, j) => j === idx ? { ...i, quantidade: parseFloat(e.target.value) || 0 } : i) }))} /></div>
@@ -223,7 +228,7 @@ export default function FichasTecnicas() {
         <TabsContent value="produtos" className="space-y-4">
           <div className="flex justify-end"><Button onClick={openNewProduto}><Plus className="h-4 w-4 mr-1" />Novo Produto</Button></div>
           <div className="grid gap-4">
-            {state.produtos.map(p => (
+            {sortByName(state.produtos).map(p => (
               <Card key={p.id}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-lg">{p.nome}</CardTitle>
@@ -237,7 +242,7 @@ export default function FichasTecnicas() {
                   <Table>
                     <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Item</TableHead><TableHead className="text-right">Quantidade</TableHead><TableHead className="text-right">Custo</TableHead></TableRow></TableHeader>
                     <TableBody>
-                      {p.ingredientes.map(ing => {
+                      {ordenarProdutoIngredientes(p.ingredientes).map(ing => {
                         let nome = '', custo = 0;
                         if (ing.tipo === 'insumo') { const i = state.insumos.find(x => x.id === ing.referenciaId); nome = i?.nome || '—'; custo = (i?.custoPorUnidade || 0) * ing.quantidade; }
                         else { const r = state.receitas.find(x => x.id === ing.referenciaId); nome = r?.nome || '—'; custo = (r?.custoPorUnidade || 0) * ing.quantidade; }
@@ -273,7 +278,7 @@ export default function FichasTecnicas() {
                         <Select value={ing.referenciaId} onValueChange={v => setProdutoForm(p => ({ ...p, ingredientes: p.ingredientes.map((i, j) => j === idx ? { ...i, referenciaId: v } : i) }))}>
                           <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                           <SelectContent>
-                            {ing.tipo === 'insumo' ? state.insumos.map(i => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>) : state.receitas.map(r => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
+                            {ing.tipo === 'insumo' ? sortByName(state.insumos).map(i => <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>) : sortByName(state.receitas).map(r => <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
