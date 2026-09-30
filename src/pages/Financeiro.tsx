@@ -386,7 +386,7 @@ export default function Financeiro() {
                 <div><Label>Descrição</Label><Input value={newDespesa.descricao} onChange={e => setNewDespesa(p => ({ ...p, descricao: e.target.value }))} placeholder="Aluguel" /></div>
                 <div><Label>Valor (R$)</Label><Input type="number" value={newDespesa.valor} onChange={e => setNewDespesa(p => ({ ...p, valor: e.target.value }))} /></div>
               </div>
-              <DialogFooter><Button onClick={addDespesa}>Salvar</Button></DialogFooter>
+              <DialogFooter><Button variant="outline" onClick={() => { clearDespesaDraft(); setShowDespesaModal(false); }}>Descartar</Button><Button onClick={addDespesa}>Salvar</Button></DialogFooter>
             </DialogContent>
           </Dialog>
         </TabsContent>
