@@ -1,2 +1,2 @@
-- [ ] Preserve incomplete forms across navigation and browser restart per account until save or discard.
-- [ ] Protect pending saved-state changes against navigation/refresh and verify representative flows.
+- [x] Preserve incomplete forms across navigation and browser restart per account until save or discard.
+- [x] Protect pending saved-state changes against navigation/refresh and verify representative flows.
