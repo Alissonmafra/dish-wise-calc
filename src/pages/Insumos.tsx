@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { sortByName } from '@/lib/alphabetical';
 import { formatBRL } from '@/lib/formatters';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,7 +33,7 @@ export default function Insumos() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
 
-  const filtered = state.insumos.filter(i => i.nome.toLowerCase().includes(search.toLowerCase()));
+  const filtered = sortByName(state.insumos.filter(i => i.nome.toLowerCase().includes(search.toLowerCase())));
 
   const openNew = () => { setForm(emptyForm); setEditId(null); setShowModal(true); };
   const openEdit = (i: Insumo) => {

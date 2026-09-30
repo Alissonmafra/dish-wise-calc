@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { Eye, EyeOff, ToggleLeft, ToggleRight, Users, RefreshCw, Pencil, Check, X, UserPlus, CheckCircle2, CopyPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { compareNames } from '@/lib/alphabetical';
 import ExportExcelButton from '@/components/ExportExcelButton';
 import type { ExportSheet } from '@/lib/exportExcel';
 
@@ -62,7 +63,7 @@ export default function AdminPanel() {
       list.sort((a, b) => {
         const aPend = !a.ativo && !a.ultimo_acesso ? 1 : 0;
         const bPend = !b.ativo && !b.ultimo_acesso ? 1 : 0;
-        return bPend - aPend;
+        return bPend - aPend || compareNames(a.nome_restaurante || '', b.nome_restaurante || '');
       });
       setClientes(list);
     }

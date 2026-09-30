@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { sortByName, compareNames } from '@/lib/alphabetical';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,7 @@ interface ComboLocal {
 
 export default function Combos() {
   const { state, dispatch, dnaTotal } = useApp();
-  const produtosDisponiveis = state.produtos.filter(p => p.cmv > 0);
+  const produtosDisponiveis = sortByName(state.produtos.filter(p => p.cmv > 0));
 
   const [combos, setCombos] = useState<ComboLocal[]>(() =>
     state.combos.map(c => ({
@@ -72,8 +73,10 @@ export default function Combos() {
     persist(combos.map(c => c.id === comboId ? { ...c, produtos: c.produtos.filter((_, i) => i !== idx) } : c));
   };
 
+  const combosOrdenados = [...combos].sort((a, b) => a.nome.trim() && b.nome.trim() ? compareNames(a.nome, b.nome) : a.nome.trim() ? -1 : b.nome.trim() ? 1 : 0);
+
   const getSheets = (): ExportSheet[] => {
-    const combosRows = combos.map(c => {
+    const combosRows = combosOrdenados.map(c => {
       const dna = dnaTotal / 100;
       const lucro = c.lucroEst / 100;
       const ifood = c.taxaIfood / 100;
@@ -100,7 +103,7 @@ export default function Combos() {
       };
     });
 
-    const produtosRows = combos.flatMap(c =>
+    const produtosRows = combosOrdenados.flatMap(c =>
       c.produtos.map(cp => {
         const prod = state.produtos.find(p => p.id === cp.produtoId);
         return {
@@ -156,7 +159,7 @@ export default function Combos() {
       </div>
 
       <div className="grid gap-6">
-        {combos.map(c => {
+        {combosOrdenados.map(c => {
           const dna = dnaTotal / 100;
           const lucro = c.lucroEst / 100;
           const ifood = c.taxaIfood / 100;

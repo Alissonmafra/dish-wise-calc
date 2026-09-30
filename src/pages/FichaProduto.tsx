@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { sortByName } from '@/lib/alphabetical';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -143,9 +144,11 @@ export default function FichaProduto() {
     ic => !produtos.some(p => p.nome === ic.nome) || (editingId && produtos.find(p => p.id === editingId)?.nome === ic.nome)
   );
 
+  const fichasOrdenadas = sortByName(produtos);
+
   const getSheets = (): ExportSheet[] => {
     const rows: Record<string, unknown>[] = [];
-    produtos.forEach(p => {
+    fichasOrdenadas.forEach(p => {
       p.ingredientes.forEach((ing, idx) => {
         rows.push({
           produto: p.nome,
@@ -205,7 +208,7 @@ export default function FichaProduto() {
           </CardContent>
         </Card>
       ) : (
-        produtos.map(p => (
+        fichasOrdenadas.map(p => (
           <Card key={p.id}>
             <CardHeader className="flex flex-row items-start justify-between pb-2">
               <div>
@@ -262,7 +265,7 @@ export default function FichaProduto() {
               <Select value={selectedCardapio} onValueChange={setSelectedCardapio}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {availableCardapio.map(ic => (
+                  {sortByName(availableCardapio).map(ic => (
                     <SelectItem key={ic.id} value={ic.nome}>{ic.nome}</SelectItem>
                   ))}
                   {availableCardapio.length === 0 && (
@@ -294,14 +297,14 @@ export default function FichaProduto() {
                   <SelectContent>
                     <SelectGroup>
                       <SelectLabel>Insumos</SelectLabel>
-                      {[...insumos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })).map(ins => (
+                      {sortByName(insumos).map(ins => (
                         <SelectItem key={ins.id} value={`insumo:${ins.id}`}>{ins.nome}</SelectItem>
                       ))}
                     </SelectGroup>
                     {receitas.length > 0 && (
                       <SelectGroup>
                         <SelectLabel>Receitas Manipuladas</SelectLabel>
-                        {[...receitas].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })).map(rec => (
+                        {sortByName(receitas).map(rec => (
                           <SelectItem key={rec.id} value={`receita:${rec.id}`}>{rec.nome}</SelectItem>
                         ))}
                       </SelectGroup>

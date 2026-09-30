@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { sortByName } from '@/lib/alphabetical';
 import { formatBRL, formatPercent } from '@/lib/formatters';
 import type { CanalVenda, VendaDia } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +39,7 @@ export default function VendasDoDia() {
 
   // Products with ficha técnica (CMV > 0) — PV salvo é opcional
   const produtosDisponiveis = useMemo(() => {
-    return state.produtos.filter(p => p.cmv > 0);
+    return sortByName(state.produtos.filter(p => p.cmv > 0));
   }, [state.produtos]);
 
   const getPrecoByCanal = (produtoId: string, canal: CanalVenda): number => {

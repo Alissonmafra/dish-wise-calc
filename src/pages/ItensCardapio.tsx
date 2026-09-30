@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { compareNames } from '@/lib/alphabetical';
 import type { ItemCardapio } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,7 +33,7 @@ export default function ItensCardapio() {
 
   const filtered = itens.filter(i =>
     i.nome.toLowerCase().includes(search.toLowerCase())
-  );
+  ).sort((a, b) => compareNames(a.nome, b.nome));
 
   function openAdd() {
     setEditingItem(null);

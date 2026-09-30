@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { sortByName } from '@/lib/alphabetical';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -126,9 +127,12 @@ export default function FichaManipulacao() {
     im => !receitas.some(r => r.nome === im.nome) || (editingId && receitas.find(r => r.id === editingId)?.nome === im.nome)
   );
 
+  const fichasOrdenadas = sortByName(receitas);
+  const nomeInsumo = (id: string) => insumos.find(i => i.id === id)?.nome || '—';
+
   const getSheets = (): ExportSheet[] => {
     const rows: Record<string, unknown>[] = [];
-    receitas.forEach(r => {
+    fichasOrdenadas.forEach(r => {
       const custoUnit = r.quantidadeProduzida > 0 ? r.custoTotal / r.quantidadeProduzida : 0;
       r.ingredientes.forEach((ing, idx) => {
         const insumo = insumos.find(i => i.id === ing.insumoId);
@@ -197,7 +201,7 @@ export default function FichaManipulacao() {
           </CardContent>
         </Card>
       ) : (
-        receitas.map(r => {
+        fichasOrdenadas.map(r => {
           const custoUnit = r.quantidadeProduzida > 0 ? r.custoTotal / r.quantidadeProduzida : 0;
           return (
             <Card key={r.id}>
@@ -261,7 +265,7 @@ export default function FichaManipulacao() {
               <Select value={selectedManipulado} onValueChange={setSelectedManipulado}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {availableManipulados.map(im => (
+                  {sortByName(availableManipulados).map(im => (
                     <SelectItem key={im.id} value={im.nome}>{im.nome}</SelectItem>
                   ))}
                   {availableManipulados.length === 0 && (
@@ -302,7 +306,7 @@ export default function FichaManipulacao() {
                 <Select value={selInsumoId} onValueChange={setSelInsumoId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {insumos.map(ins => (
+                    {sortByName(insumos).map(ins => (
                       <SelectItem key={ins.id} value={ins.id}>{ins.nome}</SelectItem>
                     ))}
                   </SelectContent>
