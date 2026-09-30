@@ -358,11 +358,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [user?.id, viewingAsUserId]);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadedRef = useRef<string | null>(null);
+  const requestRef = useRef(0);
 
   const effectiveUserId = viewingAsUserId || user?.id || null;
 
   // Reset to initial state and reload whenever the active user changes
   useEffect(() => {
+    const requestId = ++requestRef.current;
     if (!effectiveUserId) {
       loadedRef.current = null;
       reducerDispatch({ type: 'LOAD_STATE', payload: initialState });
@@ -381,7 +383,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .eq('user_id', effectiveUserId)
         .maybeSingle();
 
-      if (loadedRef.current !== null) return; // A different account was loaded while this request was in flight.
+      if (requestRef.current !== requestId) return; // Another account started loading.
       let pending: { savedAt: number; state: AppState } | null = null;
       if (!viewingAsUserId) {
         try { pending = JSON.parse(localStorage.getItem(`pending-state:v1:${effectiveUserId}`) || 'null'); } catch {}

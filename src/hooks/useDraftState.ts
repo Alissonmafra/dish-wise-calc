@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useState, useRef, type Dispatch, type SetStateAction } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 /** Local, per-account draft. Writes synchronously so navigation cannot lose the last keystroke. */
@@ -15,17 +15,21 @@ export function useDraftState<T>(name: string, initial: T | (() => T)): [T, Disp
     return { value: fallback(), exists: false };
   };
   const [entry, setEntry] = useState(() => ({ key, ...read() }));
+  const latest = useRef(entry);
   const current = entry.key === key ? entry : { key, ...read() };
+  if (latest.current.key !== key) latest.current = current;
   const set: Dispatch<SetStateAction<T>> = next => {
-    const value = typeof next === 'function' ? (next as (previous: T) => T)(current.value) : next;
+    const value = typeof next === 'function' ? (next as (previous: T) => T)(latest.current.value) : next;
     if (key) {
       try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* Still editable in memory. */ }
     }
-    setEntry({ key, value, exists: true });
+    latest.current = { key, value, exists: true };
+    setEntry(latest.current);
   };
   const clear = () => {
     if (key) { try { localStorage.removeItem(key); } catch {} }
-    setEntry({ key, value: fallback(), exists: false });
+    latest.current = { key, value: fallback(), exists: false };
+    setEntry(latest.current);
   };
   return [current.value, set, clear, current.exists];
 }
