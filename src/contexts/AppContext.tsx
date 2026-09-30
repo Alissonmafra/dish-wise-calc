@@ -352,8 +352,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const dispatch = React.useCallback((action: Action) => {
     const next = reducer(stateRef.current, action);
     stateRef.current = next;
-    if (loadedRef.current === user?.id && !viewingAsUserId) {
-      try { localStorage.setItem(`pending-state:v1:${user.id}`, JSON.stringify({ savedAt: Date.now(), state: next })); } catch {}
+    const target = viewingAsUserId || user?.id;
+    if (target && loadedRef.current === target) {
+      try { localStorage.setItem(`pending-state:v1:${target}`, JSON.stringify({ savedAt: Date.now(), state: next })); } catch {}
     }
     reducerDispatch(action);
   }, [user?.id, viewingAsUserId]);
@@ -393,9 +394,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       if (requestRef.current !== requestId || error) return; // Never overwrite remote data after a failed load.
       let pending: { savedAt: number; state: AppState } | null = null;
-      if (!viewingAsUserId) {
-        try { pending = JSON.parse(localStorage.getItem(`pending-state:v1:${effectiveUserId}`) || 'null'); } catch {}
-      }
+      try { pending = JSON.parse(localStorage.getItem(`pending-state:v1:${effectiveUserId}`) || 'null'); } catch {}
       const remoteTime = data?.updated_at ? new Date(data.updated_at).getTime() : 0;
       const loaded = pending?.state && pending.savedAt > remoteTime ? pending.state : data?.state;
       loadedRef.current = effectiveUserId;
@@ -412,29 +411,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => { requestRef.current++; };
   }, [effectiveUserId, viewingAsUserId]);
 
-  // Debounced save to Supabase — only after the current user's state has finished loading,
-  // and never while impersonating another user.
+  // Debounced save — always to the account being viewed (admin editing a client saves to that client),
+  // only after that account's state finished loading.
   useEffect(() => {
-    if (!user?.id || viewingAsUserId) return;
-    if (loadedRef.current !== user.id || hydratedUserRef.current !== user.id) return;
+    const target = effectiveUserId;
+    if (!target) return;
+    if (loadedRef.current !== target || hydratedUserRef.current !== target) return;
 
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(async () => {
-      const snapshot = state;
+    const snapshot = state;
+    let done = false;
+    const save = async () => {
+      done = true;
       const { error } = await supabase
         .from('app_state')
-        .upsert({ user_id: user.id, state: snapshot as any, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+        .upsert({ user_id: target, state: snapshot as any, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
       if (!error) {
         try {
-          const key = `pending-state:v1:${user.id}`;
+          const key = `pending-state:v1:${target}`;
           const pending = JSON.parse(localStorage.getItem(key) || 'null');
           if (pending && JSON.stringify(pending.state) === JSON.stringify(snapshot)) localStorage.removeItem(key);
         } catch {}
       }
-    }, 1500);
+    };
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(save, 1500);
 
-    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [state, user?.id, viewingAsUserId]);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      // Switching account: flush the pending save of the previous one.
+      if (!done && loadedRef.current !== target) void save();
+    };
+  }, [state, effectiveUserId]);
 
   const fatValues = state.faturamento.filter(f => f.valor > 0);
   const mediaFaturamento = fatValues.length > 0 ? fatValues.reduce((s, f) => s + f.valor, 0) / fatValues.length : 0;
