@@ -91,31 +91,31 @@ export default function Ofertas() {
 
   // Simulações ainda não transformadas em ofertas ficam apenas neste aparelho.
   const [calculatorDraft, setCalculatorDraft] = useDraftState('ofertas-calculadora', { normalProd1: '', normalProd2: '', subidaProdFraco: '', subidaProdCoringa: '', escalaProdCampeao: '', escalaProdCoringa: '', agressivaNome: '', agressivaCmv: 0 as number | '', agressivaQtd: 2, agressivaLucro: 10, normalLucro: '' as number | '', subidaLucro: '' as number | '', escalaLucro: 10 as number | '' });
-  const normalProd1 = calculatorDraft;
+  const normalProd1 = calculatorDraft.normalProd1;
   const setNormalProd1 = (value: string) => setCalculatorDraft(p => ({ ...p, normalProd1: value }));
-  const normalProd2 = calculatorDraft;
+  const normalProd2 = calculatorDraft.normalProd2;
   const setNormalProd2 = (value: string) => setCalculatorDraft(p => ({ ...p, normalProd2: value }));
-  const subidaProdFraco = calculatorDraft;
+  const subidaProdFraco = calculatorDraft.subidaProdFraco;
   const setSubidaProdFraco = (value: string) => setCalculatorDraft(p => ({ ...p, subidaProdFraco: value }));
-  const subidaProdCoringa = calculatorDraft;
+  const subidaProdCoringa = calculatorDraft.subidaProdCoringa;
   const setSubidaProdCoringa = (value: string) => setCalculatorDraft(p => ({ ...p, subidaProdCoringa: value }));
-  const escalaProdCampeao = calculatorDraft;
+  const escalaProdCampeao = calculatorDraft.escalaProdCampeao;
   const setEscalaProdCampeao = (value: string) => setCalculatorDraft(p => ({ ...p, escalaProdCampeao: value }));
-  const escalaProdCoringa = calculatorDraft;
+  const escalaProdCoringa = calculatorDraft.escalaProdCoringa;
   const setEscalaProdCoringa = (value: string) => setCalculatorDraft(p => ({ ...p, escalaProdCoringa: value }));
-  const agressivaNome = calculatorDraft;
+  const agressivaNome = calculatorDraft.agressivaNome;
   const setAgressivaNome = (value: string) => setCalculatorDraft(p => ({ ...p, agressivaNome: value }));
-  const agressivaCmv = calculatorDraft;
+  const agressivaCmv = calculatorDraft.agressivaCmv;
   const setAgressivaCmv = (value: number | '') => setCalculatorDraft(p => ({ ...p, agressivaCmv: value }));
-  const agressivaQtd = calculatorDraft;
-  const setAgressivaQtd = (value: string) => setCalculatorDraft(p => ({ ...p, agressivaQtd: value }));
-  const agressivaLucro = calculatorDraft;
-  const setAgressivaLucro = (value: string) => setCalculatorDraft(p => ({ ...p, agressivaLucro: value }));
-  const normalLucro = calculatorDraft;
+  const agressivaQtd = calculatorDraft.agressivaQtd;
+  const setAgressivaQtd = (value: number) => setCalculatorDraft(p => ({ ...p, agressivaQtd: value }));
+  const agressivaLucro = calculatorDraft.agressivaLucro;
+  const setAgressivaLucro = (value: number) => setCalculatorDraft(p => ({ ...p, agressivaLucro: value }));
+  const normalLucro = calculatorDraft.normalLucro;
   const setNormalLucro = (value: number | '') => setCalculatorDraft(p => ({ ...p, normalLucro: value }));
-  const subidaLucro = calculatorDraft;
+  const subidaLucro = calculatorDraft.subidaLucro;
   const setSubidaLucro = (value: number | '') => setCalculatorDraft(p => ({ ...p, subidaLucro: value }));
-  const escalaLucro = calculatorDraft;
+  const escalaLucro = calculatorDraft.escalaLucro;
   const setEscalaLucro = (value: number | '') => setCalculatorDraft(p => ({ ...p, escalaLucro: value }));
 
   /* ───── build product analysis ───── */
